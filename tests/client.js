@@ -1,6 +1,6 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
-const sinon = require('sinon');
+const sinon = require('sinon');``
 
 const helper = require('./helper');
 const Chat = require('../src/structures/Chat');
