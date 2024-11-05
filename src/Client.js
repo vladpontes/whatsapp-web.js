@@ -275,6 +275,7 @@ class Client extends EventEmitter {
         browser = null;
         page = null;
 
+        console.log('WWW:::', 'before auth')
         await this.authStrategy.beforeBrowserInitialized();
 
         const puppeteerOpts = this.options.puppeteer;
