@@ -281,17 +281,26 @@ class Client extends EventEmitter {
         if (puppeteerOpts && puppeteerOpts.browserWSEndpoint) {
             browser = await puppeteer.connect(puppeteerOpts);
             page = await browser.newPage();
+            console.log('WWW:::entrando na opção A:::',puppeteerOpts.browserWSEndpoint )
+
         } else {
+            console.log('WWW:::entrando na opção B:::',puppeteerOpts.args )
+
             const browserArgs = [...(puppeteerOpts.args || [])];
             if(!browserArgs.find(arg => arg.includes('--user-agent'))) {
                 browserArgs.push(`--user-agent=${this.options.userAgent}`);
             }
             // navigator.webdriver fix
             browserArgs.push('--disable-blink-features=AutomationControlled');
-
+            
+            console.log('WWW:::before launch:::',puppeteerOpts, browserArgs)
             browser = await puppeteer.launch({...puppeteerOpts, args: browserArgs});
+            console.log('WWW:::after launch:::',puppeteerOpts, browserArgs)
+
             page = (await browser.pages())[0];
         }
+        
+        console.log('WWW:::entrando na opção B:::',puppeteerOpts.args )
 
         if (this.options.proxyAuthentication !== undefined) {
             await page.authenticate(this.options.proxyAuthentication);
