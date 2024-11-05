@@ -275,17 +275,17 @@ class Client extends EventEmitter {
         browser = null;
         page = null;
 
-        console.log('WWW:::', 'before auth')
+        // console.log('WWW:::', 'before auth')
         await this.authStrategy.beforeBrowserInitialized();
 
         const puppeteerOpts = this.options.puppeteer;
         if (puppeteerOpts && puppeteerOpts.browserWSEndpoint) {
             browser = await puppeteer.connect(puppeteerOpts);
             page = await browser.newPage();
-            console.log('WWW:::entrando na opção A:::',puppeteerOpts.browserWSEndpoint )
+            // console.log('WWW:::entrando na opção A:::',puppeteerOpts.browserWSEndpoint )
 
         } else {
-            console.log('WWW:::entrando na opção B:::',puppeteerOpts.args )
+            // console.log('WWW:::entrando na opção B:::',puppeteerOpts.args )
 
             const browserArgs = [...(puppeteerOpts.args || [])];
             if(!browserArgs.find(arg => arg.includes('--user-agent'))) {
@@ -294,14 +294,14 @@ class Client extends EventEmitter {
             // navigator.webdriver fix
             browserArgs.push('--disable-blink-features=AutomationControlled');
             
-            console.log('WWW:::before launch:::',puppeteerOpts, browserArgs)
+            // console.log('WWW:::before launch:::',puppeteerOpts, browserArgs)
             browser = await puppeteer.launch({...puppeteerOpts, args: browserArgs});
-            console.log('WWW:::after launch:::',puppeteerOpts, browserArgs)
+            // console.log('WWW:::after launch:::',puppeteerOpts, browserArgs)
 
             page = (await browser.pages())[0];
         }
         
-        console.log('WWW:::entrando na opção B:::',puppeteerOpts.args )
+        // console.log('WWW:::entrando na opção B:::',puppeteerOpts.args )
 
         if (this.options.proxyAuthentication !== undefined) {
             await page.authenticate(this.options.proxyAuthentication);
