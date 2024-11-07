@@ -302,8 +302,16 @@ class Client extends EventEmitter {
             browserArgs.push('--disable-blink-features=AutomationControlled');
             
 
-            this.debugLog('puppeteerOpts inside else ')
-            browser = await puppeteer.launch({...puppeteerOpts, args: browserArgs});
+            
+            try {
+                this.debugLog('puppeteerOpts  else::: pupperteerOpts:::', puppeteerOpts)
+                this.debugLog('browserArgs  else::: browserArgs:::', puppeteerOpts)
+                browser = await puppeteer.launch({...puppeteerOpts, args: browserArgs});
+            }catch(err){
+                console.log(err)
+                this.debugLog('puppeteer.lauch error', err)
+
+            }
             this.debugLog('After method puppeteer.launch')
 
 
