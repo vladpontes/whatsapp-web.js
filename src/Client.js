@@ -87,6 +87,8 @@ class Client extends EventEmitter {
         this.lastLoggedOut = false;
 
         Util.setFfmpegPath(this.options.ffmpegPath);
+        this.debugEnabled = process.env.WW_DEBUG === 'true';
+
     }
     /**
      * Injection logic
@@ -275,17 +277,21 @@ class Client extends EventEmitter {
         browser = null;
         page = null;
 
-        // console.log('WWW:::', 'before auth')
+
         await this.authStrategy.beforeBrowserInitialized();
+        this.debugLog('After method beforeBrowserInitialized')
 
         const puppeteerOpts = this.options.puppeteer;
+        this.debugLog('puppeteerOpts: ', puppeteerOpts)
+
         if (puppeteerOpts && puppeteerOpts.browserWSEndpoint) {
             browser = await puppeteer.connect(puppeteerOpts);
             page = await browser.newPage();
-            // console.log('WWW:::entrando na opção A:::',puppeteerOpts.browserWSEndpoint )
+            this.debugLog('::: if (puppeteerOpts && puppeteerOpts.browserWSEndpoint) ')
+
 
         } else {
-            // console.log('WWW:::entrando na opção B:::',puppeteerOpts.args )
+            this.debugLog('::: else ')
 
             const browserArgs = [...(puppeteerOpts.args || [])];
             if(!browserArgs.find(arg => arg.includes('--user-agent'))) {
@@ -294,14 +300,17 @@ class Client extends EventEmitter {
             // navigator.webdriver fix
             browserArgs.push('--disable-blink-features=AutomationControlled');
             
-            // console.log('WWW:::before launch:::',puppeteerOpts, browserArgs)
+
+            this.debugLog('puppeteerOpts inside else ')
             browser = await puppeteer.launch({...puppeteerOpts, args: browserArgs});
-            // console.log('WWW:::after launch:::',puppeteerOpts, browserArgs)
+            this.debugLog('After method puppeteer.launch')
+
+
 
             page = (await browser.pages())[0];
         }
         
-        // console.log('WWW:::entrando na opção B:::',puppeteerOpts.args )
+
 
         if (this.options.proxyAuthentication !== undefined) {
             await page.authenticate(this.options.proxyAuthentication);
@@ -345,9 +354,17 @@ class Client extends EventEmitter {
                 await this.authStrategy.beforeBrowserInitialized();
                 await this.authStrategy.afterBrowserInitialized();
                 this.lastLoggedOut = false;
+                this.debugLog('on framenavigated:::frame.url().includes(post_logout=1) || this.lastLoggedOut')
             }
             await this.inject();
+
+            this.debugLog('on framenavigated:::end')
+
+
         });
+
+        this.debugLog('method initialize end.')
+
     }
 
     /**
@@ -1765,6 +1782,15 @@ class Client extends EventEmitter {
             return false;
         }, chatId);
     }
+
+    debugLog(msg) {
+        if (this.debugEnabled) {
+          const timestamp = new Date().toISOString();
+          console.log(`${timestamp} [STORE_DEBUG] ${msg}`);
+        }
+      }
 }
+
+
 
 module.exports = Client;
