@@ -88,6 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE');
 
     }
     /**
@@ -1786,7 +1787,7 @@ class Client extends EventEmitter {
     debugLog(msg) {
         if (this.debugEnabled) {
           const timestamp = new Date().toISOString();
-          console.log(`${timestamp} [STORE_DEBUG] ${msg}`);
+          console.log(`${timestamp} [WW_DEBUG] ${msg}`);
         }
       }
 }
