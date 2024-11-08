@@ -195,26 +195,43 @@ class Client extends EventEmitter {
                 return typeof window.Store !== 'undefined' && typeof window.WWebJS !== 'undefined';
             });
 
+            this.debugLog('INJECTED?', injected)
+
             if (!injected) {
                 if (this.options.webVersionCache.type === 'local' && this.currentIndexHtml) {
                     const { type: webCacheType, ...webCacheOptions } = this.options.webVersionCache;
                     const webCache = WebCacheFactory.createWebCache(webCacheType, webCacheOptions);
-            
+                    this.debugLog('BEFORE await webCache.persist(this.currentIndexHtml, version);')
+
                     await webCache.persist(this.currentIndexHtml, version);
+                    this.debugLog('AFTER await webCache.persist(this.currentIndexHtml, version);')
+
                 }
 
                 if (isCometOrAbove) {
+                    this.debugLog('BEFORE await this.pupPage.evaluate(ExposeStore)')
                     await this.pupPage.evaluate(ExposeStore);
+                    this.debugLog('AFTER await this.pupPage.evaluate(ExposeStore)')
+
                 } else {
+                    this.debugLog('BEFORE await this.pupPage.evaluate(ExposeLegacyStore);')
+                    
                     // make sure all modules are ready before injection
                     // 2 second delay after authentication makes sense and does not need to be made dyanmic or removed
                     await new Promise(r => setTimeout(r, 2000)); 
                     await this.pupPage.evaluate(ExposeLegacyStore);
+                    this.debugLog('AFTER await this.pupPage.evaluate(ExposeLegacyStore);')
                 }
+
+                this.debugLog('BEFORE window.Store != undefined')
 
                 // Check window.Store Injection
                 await this.pupPage.waitForFunction('window.Store != undefined');
+                this.debugLog('AFTER window.Store != undefined')
+
             
+                this.debugLog('BEFORE this.pupPage.evaluate')
+
                 /**
                      * Current connection information
                      * @type {ClientInfo}
@@ -223,12 +240,17 @@ class Client extends EventEmitter {
                     return { ...window.Store.Conn.serialize(), wid: window.Store.User.getMeUser() };
                 }));
 
+                this.debugLog('AFTER this.pupPage.evaluate')
+
                 this.interface = new InterfaceController(this);
 
                 //Load util functions (serializers, helper functions)
                 await this.pupPage.evaluate(LoadUtils);
 
                 await this.attachEventListeners();
+
+                this.debugLog('AFTER isInjected')
+
             }
             /**
                  * Emitted when the client has initialized and is ready to receive messages.
