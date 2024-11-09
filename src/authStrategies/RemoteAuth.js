@@ -103,7 +103,7 @@ class RemoteAuth extends BaseAuthStrategy {
         const pathExists = await this.isValidPath(this.userDataDir);
         if (pathExists) {
             await this.compressSession();
-            await this.store.save({session: this.sessionName});
+            await this.store.save({session: this.sessionName, userDataDir:this.userDataDir});
             await fs.promises.unlink(`${this.sessionName}.zip`);
             await fs.promises.rm(`${this.tempDir}`, {
                 recursive: true,
@@ -140,7 +140,7 @@ class RemoteAuth extends BaseAuthStrategy {
         const archive = archiver('zip');
         await fs.copy(this.userDataDir, this.tempDir).catch(() => {});
 
-        //fixing writing on ready-only dir on serverless functions.
+        //fixing writing on ready-only dir own serverless functions.
         const stream = fs.createWriteStream(path.join(this.userDataDir, `${this.sessionName}.zip`));
 
         await this.deleteMetadata();
