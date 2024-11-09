@@ -202,7 +202,6 @@ class Client extends EventEmitter {
                     const { type: webCacheType, ...webCacheOptions } = this.options.webVersionCache;
                     const webCache = WebCacheFactory.createWebCache(webCacheType, webCacheOptions);
                     this.debugLog('BEFORE await webCache.persist(this.currentIndexHtml, version);')
-
                     await webCache.persist(this.currentIndexHtml, version);
                     this.debugLog('AFTER await webCache.persist(this.currentIndexHtml, version);')
 

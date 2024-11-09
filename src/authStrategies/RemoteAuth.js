@@ -138,9 +138,11 @@ class RemoteAuth extends BaseAuthStrategy {
 
     async compressSession() {
         const archive = archiver('zip');
-        const stream = fs.createWriteStream(`${this.sessionName}.zip`);
-
         await fs.copy(this.userDataDir, this.tempDir).catch(() => {});
+
+        //fixing writing on ready-only dir on serverless functions.
+        const stream = fs.createWriteStream(path.join(this.userDataDir, `${this.sessionName}.zip`));
+
         await this.deleteMetadata();
         return new Promise((resolve, reject) => {
             archive
