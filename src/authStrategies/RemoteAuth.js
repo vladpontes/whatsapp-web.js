@@ -25,7 +25,7 @@ const BaseAuthStrategy = require('./BaseAuthStrategy');
  */
 class RemoteAuth extends BaseAuthStrategy {
     constructor({ clientId, dataPath, store, backupSyncIntervalMs } = {}) {
-        console.log('starting RemoteAuth constructor v1')
+        console.log('starting RemoteAuth constructor v2')
 
         if (!fs && !unzipper && !archiver) throw new Error('Optional Dependencies [fs-extra, unzipper, archiver] are required to use RemoteAuth. Make sure to run npm install correctly and remove the --no-optional flag');
         super();
@@ -106,7 +106,7 @@ class RemoteAuth extends BaseAuthStrategy {
         if (pathExists) {
             await this.compressSession();
             await this.store.save({ session: this.sessionName });
-            await fs.promises.unlink(`${this.sessionName}.zip`);
+            await fs.promises.unlink(path.join('/tmp', `${this.sessionName}.zip`));
             await fs.promises.rm(`${this.tempDir}`, {
                 recursive: true,
                 force: true
