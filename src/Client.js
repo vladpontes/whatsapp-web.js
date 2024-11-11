@@ -254,6 +254,12 @@ class Client extends EventEmitter {
                     this.debugLog('AFTER await this.pupPage.evaluate(ExposeLegacyStore);')
                 }
 
+                this.debugLog('BEFORE await setTimeout;')
+                await new Promise(r => setTimeout(r, 5000));
+                this.debugLog('AFTER await setTimeout;')
+
+
+
                 // this.debugLog('BEFORE window.Store != undefined')
 
                 // // Check window.Store Injection
