@@ -102,11 +102,17 @@ class Client extends EventEmitter {
         const isCometOrAbove = parseInt(version.split('.')?.[1]) >= 3000;
 
         if (isCometOrAbove) {
+            this.debugLog('before evaluate(ExposeAuthStore)')
             await this.pupPage.evaluate(ExposeAuthStore);
+            this.debugLog('after evaluate(ExposeAuthStore)')
+
         } else {
+            this.debugLog('before evaluate(ExposeLegacyAuthStore, moduleRaid.toString())')
             await this.pupPage.evaluate(ExposeLegacyAuthStore, moduleRaid.toString());
+            this.debugLog('after evaluate(ExposeLegacyAuthStore, moduleRaid.toString())')
         }
 
+        this.debugLog('before const needAuthentication = await this.pupPage.evaluate')
         const needAuthentication = await this.pupPage.evaluate(async () => {
             let state = window.AuthStore.AppState.state;
 
@@ -124,6 +130,8 @@ class Client extends EventEmitter {
             state = window.AuthStore.AppState.state;
             return state == 'UNPAIRED' || state == 'UNPAIRED_IDLE';
         });
+        this.debugLog('after const needAuthentication = await this.pupPage.evaluate')
+
 
         if (needAuthentication) {
             const { failed, failureEventPayload, restart } = await this.authStrategy.onAuthenticationNeeded();
@@ -161,7 +169,7 @@ class Client extends EventEmitter {
                 }
             });
 
-
+            this.debugLog('before await this.pupPage.evaluate(async () => {')
             await this.pupPage.evaluate(async () => {
                 const registrationInfo = await window.AuthStore.RegistrationUtils.waSignalStore.getRegistrationInfo();
                 const noiseKeyPair = await window.AuthStore.RegistrationUtils.waNoiseInfo.get();
@@ -174,6 +182,8 @@ class Client extends EventEmitter {
                 window.onQRChangedEvent(getQR(window.AuthStore.Conn.ref)); // initial qr
                 window.AuthStore.Conn.on('change:ref', (_, ref) => { window.onQRChangedEvent(getQR(ref)); }); // future QR changes
             });
+            this.debugLog('after await this.pupPage.evaluate(async () => {')
+
         }
 
         await exposeFunctionIfAbsent(this.pupPage, 'onAuthAppStateChangedEvent', async (state) => {
@@ -184,38 +194,41 @@ class Client extends EventEmitter {
         });
 
 
-        async function fetchClientInfo(page, retries = 3, delay = 1500) {
-            // Função para verificar a estabilidade da página antes do evaluate
-            await page.waitForFunction(
-                'window.Store && window.Store.Conn && window.Store.User',
-                { timeout: 2000 }
-            );
 
-            for (let attempt = 0; attempt < retries; attempt++) {
-                try {
-                    // Executa o evaluate após verificar que os objetos necessários estão disponíveis
-                    return await page.evaluate(() => {
-                        const connectionData = window.Store.Conn.serialize();
-                        const userId = window.Store.User.getMeUser();
-                        return { ...connectionData, wid: userId };
-                    });
-                } catch (error) {
-                    console.error(`Erro ao buscar informações do cliente (tentativa ${attempt + 1}):`, error);
-
-                    // Se o erro foi de contexto destruído, esperamos antes de tentar novamente
-                    if (error.message.includes("Execution context was destroyed")) {
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    } else {
-                        throw error; // Se for outro erro, encerra a função
-                    }
-                }
-            }
-
-            console.warn("Não foi possível buscar as informações do cliente após várias tentativas.");
-            return null; // Retorna null se todas as tentativas falharem
-        }
 
         await exposeFunctionIfAbsent(this.pupPage, 'onAppStateHasSyncedEvent', async () => {
+
+            async function fetchClientInfo(page, retries = 3, delay = 1500) {
+                // Função para verificar a estabilidade da página antes do evaluate
+                await page.waitForFunction(
+                    'window.Store && window.Store.Conn && window.Store.User',
+                    { timeout: 2000 }
+                );
+
+                for (let attempt = 0; attempt < retries; attempt++) {
+                    try {
+                        // Executa o evaluate após verificar que os objetos necessários estão disponíveis
+                        return await page.evaluate(() => {
+                            const connectionData = window.Store.Conn.serialize();
+                            const userId = window.Store.User.getMeUser();
+                            return { ...connectionData, wid: userId };
+                        });
+                    } catch (error) {
+                        console.error(`Erro ao buscar informações do cliente (tentativa ${attempt + 1}):`, error);
+
+                        // Se o erro foi de contexto destruído, esperamos antes de tentar novamente
+                        if (error.message.includes("Execution context was destroyed")) {
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        } else {
+                            throw error; // Se for outro erro, encerra a função
+                        }
+                    }
+                }
+
+                console.warn("Não foi possível buscar as informações do cliente após várias tentativas.");
+                return null; // Retorna null se todas as tentativas falharem
+            }
+
             const authEventPayload = await this.authStrategy.getAuthEventPayload();
             /**
                  * Emitted when authentication is successful
@@ -223,11 +236,13 @@ class Client extends EventEmitter {
                  */
             this.emit(Events.AUTHENTICATED, authEventPayload);
 
+            this.debugLog('before const injected = await this.pupPage.evaluate(async () => {')
             const injected = await this.pupPage.evaluate(async () => {
                 return typeof window.Store !== 'undefined' && typeof window.WWebJS !== 'undefined';
             });
+            this.debugLog('after const injected = await this.pupPage.evaluate(async () => {')
 
-            this.debugLog('INJECTED?', injected)
+
 
             if (!injected) {
                 if (this.options.webVersionCache.type === 'local' && this.currentIndexHtml) {
@@ -289,10 +304,15 @@ class Client extends EventEmitter {
 
                 this.interface = new InterfaceController(this);
 
+                this.debugLog('before await this.pupPage.evaluate(LoadUtils);')
                 //Load util functions (serializers, helper functions)
                 await this.pupPage.evaluate(LoadUtils);
+                this.debugLog('after await this.pupPage.evaluate(LoadUtils);')
 
+
+                this.debugLog('before attachEventListeners')
                 await this.attachEventListeners();
+                this.debugLog('after attachEventListeners')
 
                 this.debugLog('AFTER isInjected')
 
@@ -315,6 +335,7 @@ class Client extends EventEmitter {
             this.lastLoggedOut = true;
             await this.pupPage.waitForNavigation({ waitUntil: 'load', timeout: 5000 }).catch((_) => _);
         });
+        this.debugLog('before await this.pupPage.evaluate(() => {')
         await this.pupPage.evaluate(() => {
             window.AuthStore.AppState.on('change:state', (_AppState, state) => { window.onAuthAppStateChangedEvent(state); });
             window.AuthStore.AppState.on('change:hasSynced', () => { window.onAppStateHasSyncedEvent(); });
@@ -325,6 +346,7 @@ class Client extends EventEmitter {
                 await window.onLogoutEvent();
             });
         });
+        this.debugLog('after await this.pupPage.evaluate(() => {')
     }
 
     /**
@@ -399,7 +421,10 @@ class Client extends EventEmitter {
         this.pupPage = page;
 
         await this.authStrategy.afterBrowserInitialized();
+
+        this.debugLog('before await this.initWebVersionCache()')
         await this.initWebVersionCache();
+        this.debugLog('after await this.initWebVersionCache()')
 
         // ocVersion (isOfficialClient patch)
         // remove after 2.3000.x hard release
@@ -421,7 +446,10 @@ class Client extends EventEmitter {
             referer: 'https://whatsapp.com/'
         });
 
+        this.debugLog('before first inject')
         await this.inject();
+        this.debugLog('after first inject')
+
 
         this.pupPage.on('framenavigated', async (frame) => {
             if (frame.url().includes('post_logout=1') || this.lastLoggedOut) {
@@ -432,7 +460,10 @@ class Client extends EventEmitter {
                 this.lastLoggedOut = false;
                 this.debugLog('on framenavigated:::frame.url().includes(post_logout=1) || this.lastLoggedOut')
             }
+            this.debugLog('before second inject')
             await this.inject();
+            this.debugLog('after second inject')
+
 
             this.debugLog('on framenavigated:::end')
 
@@ -450,11 +481,15 @@ class Client extends EventEmitter {
      * @returns {Promise<string>} - Returns a pairing code in format "ABCDEFGH"
      */
     async requestPairingCode(phoneNumber, showNotification = true) {
-        return await this.pupPage.evaluate(async (phoneNumber, showNotification) => {
+        this.debugLog('before return await this.pupPage.evaluate(async (phoneNumber, showNotification) => {')
+        const ret = await this.pupPage.evaluate(async (phoneNumber, showNotification) => {
             window.AuthStore.PairingCodeLinkUtils.setPairingType('ALT_DEVICE_LINKING');
             await window.AuthStore.PairingCodeLinkUtils.initializeAltDeviceLinking();
             return window.AuthStore.PairingCodeLinkUtils.startAltLinkingFlow(phoneNumber, showNotification);
         }, phoneNumber, showNotification);
+        this.debugLog('after return await this.pupPage.evaluate(async (phoneNumber, showNotification) => {')
+
+        return ret;
     }
 
     /**
@@ -652,10 +687,13 @@ class Client extends EventEmitter {
             if (this.options.takeoverOnConflict) {
                 ACCEPTED_STATES.push(WAState.CONFLICT);
 
+
                 if (state === WAState.CONFLICT) {
+                    this.debugLog('before this.pupPage.evaluate(() => window.Store.AppState.takeover());')
                     setTimeout(() => {
                         this.pupPage.evaluate(() => window.Store.AppState.takeover());
                     }, this.options.takeoverTimeoutMs);
+                    this.debugLog('after this.pupPage.evaluate(() => window.Store.AppState.takeover());')
                 }
             }
 
@@ -785,6 +823,7 @@ class Client extends EventEmitter {
             this.emit(Events.VOTE_UPDATE, _vote);
         });
 
+        this.debugLog('before gigante await this.pupPage.evaluate(() => {')
         await this.pupPage.evaluate(() => {
             window.Store.Msg.on('change', (msg) => { window.onChangeMessageEvent(window.WWebJS.getMessageModel(msg)); });
             window.Store.Msg.on('change:type', (msg) => { window.onChangeMessageTypeEvent(window.WWebJS.getMessageModel(msg)); });
@@ -846,6 +885,9 @@ class Client extends EventEmitter {
                 }).bind(module);
             }
         });
+
+        this.debugLog('after gigante await this.pupPage.evaluate(() => {')
+
     }
 
     async initWebVersionCache() {
@@ -890,11 +932,14 @@ class Client extends EventEmitter {
      * Logs out the client, closing the current session
      */
     async logout() {
+        this.debugLog('before await logoff this.pupPage.evaluate(() => {')
         await this.pupPage.evaluate(() => {
             if (window.Store && window.Store.AppState && typeof window.Store.AppState.logout === 'function') {
                 return window.Store.AppState.logout();
             }
         });
+        this.debugLog('after await logoff this.pupPage.evaluate(() => {')
+
         await this.pupBrowser.close();
 
         let maxDelay = 0;
@@ -911,9 +956,13 @@ class Client extends EventEmitter {
      * @returns {Promise<string>}
      */
     async getWWebVersion() {
-        return await this.pupPage.evaluate(() => {
+        this.debugLog('before const ret =  await this.pupPage.evaluate(() => {')
+        const ret = await this.pupPage.evaluate(() => {
             return window.Debug.VERSION;
         });
+        this.debugLog('after const ret =  await this.pupPage.evaluate(() => {')
+
+        return ret;
     }
 
     /**
@@ -923,10 +972,12 @@ class Client extends EventEmitter {
      * 
      */
     async sendSeen(chatId) {
+        this.debugLog('before const result = await this.pupPage.evaluate(async (chatId) => {')
         const result = await this.pupPage.evaluate(async (chatId) => {
             return window.WWebJS.sendSeen(chatId);
 
         }, chatId);
+        this.debugLog('after const result = await this.pupPage.evaluate(async (chatId) => {')
         return result;
     }
 
@@ -1035,6 +1086,7 @@ class Client extends EventEmitter {
             );
         }
 
+        this.debugLog('before const newMessage = await this.pupPage.evaluate(async (chatId, message, options, sendSeen) => {')
         const newMessage = await this.pupPage.evaluate(async (chatId, message, options, sendSeen) => {
             const chatWid = window.Store.WidFactory.createWid(chatId);
             const chat = await window.Store.Chat.find(chatWid);
@@ -1047,6 +1099,7 @@ class Client extends EventEmitter {
             const msg = await window.WWebJS.sendMessage(chat, message, options, sendSeen);
             return window.WWebJS.getMessageModel(msg);
         }, chatId, content, internalOptions, sendSeen);
+        this.debugLog('after const newMessage = await this.pupPage.evaluate(async (chatId, message, options, sendSeen) => {')
 
         return new Message(this, newMessage);
     }
@@ -1061,10 +1114,12 @@ class Client extends EventEmitter {
      * @returns {Promise<Message[]>}
      */
     async searchMessages(query, options = {}) {
+        this.debugLog('before const messages = await this.pupPage.evaluate(async (query, page, count, remote) => {')
         const messages = await this.pupPage.evaluate(async (query, page, count, remote) => {
             const { messages } = await window.Store.Msg.search(query, page, count, remote);
             return messages.map(msg => window.WWebJS.getMessageModel(msg));
         }, query, options.page, options.limit, options.chatId);
+        this.debugLog('after const messages = await this.pupPage.evaluate(async (query, page, count, remote) => {')
 
         return messages.map(msg => new Message(this, msg));
     }
@@ -1074,9 +1129,11 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<Chat>>}
      */
     async getChats() {
+        this.debugLog('before let chats = await this.pupPage.evaluate(async () => {')
         let chats = await this.pupPage.evaluate(async () => {
             return await window.WWebJS.getChats();
         });
+        this.debugLog('after let chats = await this.pupPage.evaluate(async () => {')
 
         return chats.map(chat => ChatFactory.create(this, chat));
     }
@@ -1087,9 +1144,11 @@ class Client extends EventEmitter {
      * @returns {Promise<Chat>}
      */
     async getChatById(chatId) {
+        this.debugLog('before let chat = await this.pupPage.evaluate(async chatId => {')
         let chat = await this.pupPage.evaluate(async chatId => {
             return await window.WWebJS.getChat(chatId);
         }, chatId);
+        this.debugLog('after let chat = await this.pupPage.evaluate(async chatId => {')
 
         return ChatFactory.create(this, chat);
     }
@@ -1099,9 +1158,11 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<Contact>>}
      */
     async getContacts() {
+        this.debugLog('before let contacts = await this.pupPage.evaluate(() => {')
         let contacts = await this.pupPage.evaluate(() => {
             return window.WWebJS.getContacts();
         });
+        this.debugLog('after let contacts = await this.pupPage.evaluate(() => {')
 
         return contacts.map(contact => ContactFactory.create(this, contact));
     }
@@ -1112,14 +1173,17 @@ class Client extends EventEmitter {
      * @returns {Promise<Contact>}
      */
     async getContactById(contactId) {
+        this.debugLog('before let contact = await this.pupPage.evaluate(contactId => {')
         let contact = await this.pupPage.evaluate(contactId => {
             return window.WWebJS.getContact(contactId);
         }, contactId);
+        this.debugLog('after let contact = await this.pupPage.evaluate(contactId => {')
 
         return ContactFactory.create(this, contact);
     }
 
     async getMessageById(messageId) {
+        this.debugLog('before const msg = await this.pupPage.evaluate(async messageId => {')
         const msg = await this.pupPage.evaluate(async messageId => {
             let msg = window.Store.Msg.get(messageId);
             if (msg) return window.WWebJS.getMessageModel(msg);
@@ -1132,6 +1196,7 @@ class Client extends EventEmitter {
 
             if (msg) return window.WWebJS.getMessageModel(msg);
         }, messageId);
+        this.debugLog('after const msg = await this.pupPage.evaluate(async messageId => {')
 
         if (msg) return new Message(this, msg);
         return null;
@@ -1143,9 +1208,13 @@ class Client extends EventEmitter {
      * @returns {Promise<object>} Invite information
      */
     async getInviteInfo(inviteCode) {
-        return await this.pupPage.evaluate(inviteCode => {
+        this.debugLog('before const ret =  await this.pupPage.evaluate(inviteCode => {')
+        const ret = await this.pupPage.evaluate(inviteCode => {
             return window.Store.GroupInvite.queryGroupInvite(inviteCode);
         }, inviteCode);
+        this.debugLog('after const ret =  await this.pupPage.evaluate(inviteCode => {')
+
+        return ret;
     }
 
     /**
@@ -1154,9 +1223,11 @@ class Client extends EventEmitter {
      * @returns {Promise<string>} Id of the joined Chat
      */
     async acceptInvite(inviteCode) {
+        this.debugLog('before const res = await this.pupPage.evaluate(async inviteCode => {')
         const res = await this.pupPage.evaluate(async inviteCode => {
             return await window.Store.GroupInvite.joinGroupViaInvite(inviteCode);
         }, inviteCode);
+        this.debugLog('after const res = await this.pupPage.evaluate(async inviteCode => {')
 
         return res.gid._serialized;
     }
@@ -1169,11 +1240,14 @@ class Client extends EventEmitter {
     async acceptGroupV4Invite(inviteInfo) {
         if (!inviteInfo.inviteCode) throw 'Invalid invite code, try passing the message.inviteV4 object';
         if (inviteInfo.inviteCodeExp == 0) throw 'Expired invite code';
-        return this.pupPage.evaluate(async inviteInfo => {
+        this.debugLog('before const ret =  this.pupPage.evaluate(async inviteInfo => {')
+        const ret = this.pupPage.evaluate(async inviteInfo => {
             let { groupId, fromId, inviteCode, inviteCodeExp } = inviteInfo;
             let userWid = window.Store.WidFactory.createWid(fromId);
             return await window.Store.GroupInviteV4.joinGroupViaInviteV4(inviteCode, String(inviteCodeExp), groupId, userWid);
         }, inviteInfo);
+        this.debugLog('after const ret =  this.pupPage.evaluate(async inviteInfo => {')
+        return ret;
     }
 
     /**
@@ -1181,9 +1255,11 @@ class Client extends EventEmitter {
      * @param {string} status New status message
      */
     async setStatus(status) {
+        this.debugLog('before await this.pupPage.evaluate(async status => {')
         await this.pupPage.evaluate(async status => {
             return await window.Store.StatusUtils.setMyStatus(status);
         }, status);
+        this.debugLog('after await this.pupPage.evaluate(async status => {')
     }
 
     /**
@@ -1193,11 +1269,14 @@ class Client extends EventEmitter {
      * @returns {Promise<Boolean>}
      */
     async setDisplayName(displayName) {
+        this.debugLog('before const couldSet = await this.pupPage.evaluate(async displayName => {')
+
         const couldSet = await this.pupPage.evaluate(async displayName => {
             if (!window.Store.Conn.canSetMyPushname()) return false;
             await window.Store.Settings.setPushname(displayName);
             return true;
         }, displayName);
+        this.debugLog('after const couldSet = await this.pupPage.evaluate(async displayName => {')
 
         return couldSet;
     }
@@ -1207,28 +1286,37 @@ class Client extends EventEmitter {
      * @returns {WAState} 
      */
     async getState() {
-        return await this.pupPage.evaluate(() => {
+        this.debugLog('before const ret =  await this.pupPage.evaluate(() => {')
+        const ret = await this.pupPage.evaluate(() => {
             if (!window.Store) return null;
             return window.Store.AppState.state;
         });
+        this.debugLog('after const ret =  await this.pupPage.evaluate(() => {')
+        return ret;
     }
 
     /**
      * Marks the client as online
      */
     async sendPresenceAvailable() {
-        return await this.pupPage.evaluate(() => {
+        this.debugLog('before const ret =  await this.pupPage.evaluate(() => {')
+        const ret = await this.pupPage.evaluate(() => {
             return window.Store.PresenceUtils.sendPresenceAvailable();
         });
+        this.debugLog('after const ret =  await this.pupPage.evaluate(() => {')
+        return ret;
     }
 
     /**
      * Marks the client as unavailable
      */
     async sendPresenceUnavailable() {
-        return await this.pupPage.evaluate(() => {
+        this.debugLog('before const ret =  await this.pupPage.evaluate(() => {')
+        const ret = await this.pupPage.evaluate(() => {
             return window.Store.PresenceUtils.sendPresenceUnavailable();
         });
+        this.debugLog('after const ret =  await this.pupPage.evaluate(() => {')
+        return ret;
     }
 
     /**
@@ -1236,11 +1324,15 @@ class Client extends EventEmitter {
      * @returns {boolean}
      */
     async archiveChat(chatId) {
-        return await this.pupPage.evaluate(async chatId => {
+        this.debugLog('before const ret =  await this.pupPage.evaluate(async chatId => {')
+        const ret = await this.pupPage.evaluate(async chatId => {
             let chat = await window.Store.Chat.get(chatId);
             await window.Store.Cmd.archiveChat(chat, true);
             return true;
         }, chatId);
+        this.debugLog('after const ret =  await this.pupPage.evaluate(async chatId => {')
+
+        return ret;
     }
 
     /**
@@ -1248,11 +1340,15 @@ class Client extends EventEmitter {
      * @returns {boolean}
      */
     async unarchiveChat(chatId) {
-        return await this.pupPage.evaluate(async chatId => {
+        this.debugLog('before const ret =  await this.pupPage.evaluate(async chatId => {')
+        const ret = await this.pupPage.evaluate(async chatId => {
             let chat = await window.Store.Chat.get(chatId);
             await window.Store.Cmd.archiveChat(chat, false);
             return false;
         }, chatId);
+        this.debugLog('after const ret =  await this.pupPage.evaluate(async chatId => {')
+
+        return ret;
     }
 
     /**
@@ -1260,7 +1356,8 @@ class Client extends EventEmitter {
      * @returns {Promise<boolean>} New pin state. Could be false if the max number of pinned chats was reached.
      */
     async pinChat(chatId) {
-        return this.pupPage.evaluate(async chatId => {
+        this.debugLog('before const ret =  this.pupPage.evaluate(async chatId => {')
+        const ret = this.pupPage.evaluate(async chatId => {
             let chat = window.Store.Chat.get(chatId);
             if (chat.pin) {
                 return true;
@@ -1276,6 +1373,8 @@ class Client extends EventEmitter {
             await window.Store.Cmd.pinChat(chat, true);
             return true;
         }, chatId);
+        this.debugLog('after const ret =  this.pupPage.evaluate(async chatId => {')
+        return ret;
     }
 
     /**
@@ -1283,7 +1382,8 @@ class Client extends EventEmitter {
      * @returns {Promise<boolean>} New pin state
      */
     async unpinChat(chatId) {
-        return this.pupPage.evaluate(async chatId => {
+        this.debugLog('before const ret =  this.pupPage.evaluate(async chatId => {')
+        const ret = this.pupPage.evaluate(async chatId => {
             let chat = window.Store.Chat.get(chatId);
             if (!chat.pin) {
                 return false;
@@ -1291,6 +1391,9 @@ class Client extends EventEmitter {
             await window.Store.Cmd.pinChat(chat, false);
             return false;
         }, chatId);
+        this.debugLog('after const ret =  this.pupPage.evaluate(async chatId => {')
+
+        return ret;
     }
 
     /**
@@ -1300,10 +1403,12 @@ class Client extends EventEmitter {
      */
     async muteChat(chatId, unmuteDate) {
         unmuteDate = unmuteDate ? unmuteDate.getTime() / 1000 : -1;
+        this.debugLog('before await this.pupPage.evaluate(async (chatId, timestamp) => {')
         await this.pupPage.evaluate(async (chatId, timestamp) => {
             let chat = await window.Store.Chat.get(chatId);
             await chat.mute.mute({ expiration: timestamp, sendDevice: !0 });
         }, chatId, unmuteDate || -1);
+        this.debugLog('after await this.pupPage.evaluate(async (chatId, timestamp) => {')
     }
 
     /**
@@ -1311,10 +1416,12 @@ class Client extends EventEmitter {
      * @param {string} chatId ID of the chat that will be unmuted
      */
     async unmuteChat(chatId) {
+        this.debugLog('before await this.pupPage.evaluate(async chatId => {')
         await this.pupPage.evaluate(async chatId => {
             let chat = await window.Store.Chat.get(chatId);
             await window.Store.Cmd.muteChat(chat, false);
         }, chatId);
+        this.debugLog('after await this.pupPage.evaluate(async chatId => {')
     }
 
     /**
@@ -1322,10 +1429,12 @@ class Client extends EventEmitter {
      * @param {string} chatId ID of the chat that will be marked as unread
      */
     async markChatUnread(chatId) {
+        this.debugLog('before await this.pupPage.evaluate(async chatId => {')
         await this.pupPage.evaluate(async chatId => {
             let chat = await window.Store.Chat.get(chatId);
             await window.Store.Cmd.markChatUnread(chat, true);
         }, chatId);
+        this.debugLog('after await this.pupPage.evaluate(async chatId => {')
     }
 
     /**
@@ -1334,6 +1443,7 @@ class Client extends EventEmitter {
      * @returns {Promise<string>}
      */
     async getProfilePicUrl(contactId) {
+        this.debugLog('before const profilePic = await this.pupPage.evaluate(async contactId => {')
         const profilePic = await this.pupPage.evaluate(async contactId => {
             try {
                 const chatWid = window.Store.WidFactory.createWid(contactId);
@@ -1345,6 +1455,7 @@ class Client extends EventEmitter {
                 throw err;
             }
         }, contactId);
+        this.debugLog('after const profilePic = await this.pupPage.evaluate(async contactId => {')
 
         return profilePic ? profilePic.eurl : undefined;
     }
@@ -1355,6 +1466,7 @@ class Client extends EventEmitter {
      * @returns {Promise<WAWebJS.ChatId[]>}
      */
     async getCommonGroups(contactId) {
+        this.debugLog('before const commonGroups = await this.pupPage.evaluate(async (contactId) => {')
         const commonGroups = await this.pupPage.evaluate(async (contactId) => {
             let contact = window.Store.Contact.get(contactId);
             if (!contact) {
@@ -1372,6 +1484,7 @@ class Client extends EventEmitter {
             }
             return [];
         }, contactId);
+        this.debugLog('after const commonGroups = await this.pupPage.evaluate(async (contactId) => {')
         const chats = [];
         for (const group of commonGroups) {
             chats.push(group.id);
@@ -1383,9 +1496,11 @@ class Client extends EventEmitter {
      * Force reset of connection state for the client
     */
     async resetState() {
+        this.debugLog('before resetState it this.pupPage.evaluate(() => {')
         await this.pupPage.evaluate(() => {
             window.Store.AppState.phoneWatchdog.shiftTimer.forceRunNow();
         });
+        this.debugLog('after resetState it this.pupPage.evaluate(() => {')
     }
 
     /**
@@ -1408,12 +1523,15 @@ class Client extends EventEmitter {
             number += '@c.us';
         }
 
-        return await this.pupPage.evaluate(async number => {
+        this.debugLog('before const ret =  await this.pupPage.evaluate(async number => {')
+        const ret = await this.pupPage.evaluate(async number => {
             const wid = window.Store.WidFactory.createWid(number);
             const result = await window.Store.QueryExist(wid);
             if (!result || result.wid === undefined) return null;
             return result.wid;
         }, number);
+        this.debugLog('after const ret =  await this.pupPage.evaluate(async number => {')
+        return ret;
     }
 
     /**
@@ -1425,9 +1543,12 @@ class Client extends EventEmitter {
         if (!number.endsWith('@s.whatsapp.net')) number = number.replace('c.us', 's.whatsapp.net');
         if (!number.includes('@s.whatsapp.net')) number = `${number}@s.whatsapp.net`;
 
-        return await this.pupPage.evaluate(async numberId => {
+        this.debugLog('before const ret =  await this.pupPage.evaluate(async numberId => {')
+        const ret = await this.pupPage.evaluate(async numberId => {
             return window.Store.NumberInfo.formattedPhoneNumber(numberId);
         }, number);
+        this.debugLog('after const ret =  await this.pupPage.evaluate(async numberId => {')
+        return ret;
     }
 
     /**
@@ -1438,9 +1559,13 @@ class Client extends EventEmitter {
     async getCountryCode(number) {
         number = number.replace(' ', '').replace('+', '').replace('@c.us', '');
 
-        return await this.pupPage.evaluate(async numberId => {
+        this.debugLog('before getcountrycode const ret =  await this.pupPage.evaluate(async numberId => {')
+        const ret = await this.pupPage.evaluate(async numberId => {
             return window.Store.NumberInfo.findCC(numberId);
         }, number);
+        this.debugLog('after getcountrycode const ret =  await this.pupPage.evaluate(async numberId => {')
+
+        return ret;
     }
 
     /**
@@ -1483,7 +1608,8 @@ class Client extends EventEmitter {
         !Array.isArray(participants) && (participants = [participants]);
         participants.map(p => (p instanceof Contact) ? p.id._serialized : p);
 
-        return await this.pupPage.evaluate(async (title, participants, options) => {
+        this.debugLog('before const ret =  await this.pupPage.evaluate(async (title, participants, options) => {')
+        const ret = await this.pupPage.evaluate(async (title, participants, options) => {
             const { messageTimer = 0, parentGroupId, autoSendInviteV4 = true, comment = '' } = options;
             const participantData = {}, participantWids = [], failedParticipants = [];
             let createGroupResult, parentGroupWid;
@@ -1562,6 +1688,9 @@ class Client extends EventEmitter {
 
             return { title: title, gid: createGroupResult.wid, participants: participantData };
         }, title, participants, options);
+        this.debugLog('after const ret =  await this.pupPage.evaluate(async (title, participants, options) => {')
+
+        return ret;
     }
 
     /**
@@ -1569,9 +1698,11 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<Label>>}
      */
     async getLabels() {
+        this.debugLog('before const labels = await this.pupPage.evaluate(async () => {')
         const labels = await this.pupPage.evaluate(async () => {
             return window.WWebJS.getLabels();
         });
+        this.debugLog('after const labels = await this.pupPage.evaluate(async () => {')
 
         return labels.map(data => new Label(this, data));
     }
@@ -1581,9 +1712,11 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<Broadcast>>}
      */
     async getBroadcasts() {
+        this.debugLog('before const broadcasts = await this.pupPage.evaluate(async () => {')
         const broadcasts = await this.pupPage.evaluate(async () => {
             return window.WWebJS.getAllStatuses();
         });
+        this.debugLog('after const broadcasts = await this.pupPage.evaluate(async () => {')
         return broadcasts.map(data => new Broadcast(this, data));
     }
 
@@ -1593,9 +1726,11 @@ class Client extends EventEmitter {
      * @returns {Promise<Label>}
      */
     async getLabelById(labelId) {
+        this.debugLog('before const label = await this.pupPage.evaluate(async (labelId) => {')
         const label = await this.pupPage.evaluate(async (labelId) => {
             return window.WWebJS.getLabel(labelId);
         }, labelId);
+        this.debugLog('after const label = await this.pupPage.evaluate(async (labelId) => {')
 
         return new Label(this, label);
     }
@@ -1606,9 +1741,11 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<Label>>}
      */
     async getChatLabels(chatId) {
+        this.debugLog('before getChatLabels const labels = await this.pupPage.evaluate(async (chatId) => {')
         const labels = await this.pupPage.evaluate(async (chatId) => {
             return window.WWebJS.getChatLabels(chatId);
         }, chatId);
+        this.debugLog('after getChatLabels const labels = await this.pupPage.evaluate(async (chatId) => {')
 
         return labels.map(data => new Label(this, data));
     }
@@ -1619,6 +1756,7 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<Chat>>}
      */
     async getChatsByLabelId(labelId) {
+        this.debugLog('before getchatsbylabelid const chatIds = await this.pupPage.evaluate(async (labelId) => {')
         const chatIds = await this.pupPage.evaluate(async (labelId) => {
             const label = window.Store.Label.get(labelId);
             const labelItems = label.labelItemCollection.getModelsArray();
@@ -1629,6 +1767,7 @@ class Client extends EventEmitter {
                 return result;
             }, []);
         }, labelId);
+        this.debugLog('after getchatsbylabelid const chatIds = await this.pupPage.evaluate(async (labelId) => {')
 
         return Promise.all(chatIds.map(id => this.getChatById(id)));
     }
@@ -1638,10 +1777,13 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<Contact>>}
      */
     async getBlockedContacts() {
+
+        this.debugLog('before const blockedContacts = await this.pupPage.evaluate(() => {')
         const blockedContacts = await this.pupPage.evaluate(() => {
             let chatIds = window.Store.Blocklist.getModelsArray().map(a => a.id._serialized);
             return Promise.all(chatIds.map(id => window.WWebJS.getContact(id)));
         });
+        this.debugLog('after const blockedContacts = await this.pupPage.evaluate(() => {')
 
         return blockedContacts.map(contact => ContactFactory.create(this.client, contact));
     }
@@ -1652,9 +1794,11 @@ class Client extends EventEmitter {
      * @returns {Promise<boolean>} Returns true if the picture was properly updated.
      */
     async setProfilePicture(media) {
+        this.debugLog('before getprofilepicture const success = await this.pupPage.evaluate((chatid, media) => {')
         const success = await this.pupPage.evaluate((chatid, media) => {
             return window.WWebJS.setPicture(chatid, media);
         }, this.info.wid._serialized, media);
+        this.debugLog('after getprofilepicture const success = await this.pupPage.evaluate((chatid, media) => {')
 
         return success;
     }
@@ -1664,9 +1808,11 @@ class Client extends EventEmitter {
      * @returns {Promise<boolean>} Returns true if the picture was properly deleted.
      */
     async deleteProfilePicture() {
+        this.debugLog('before deleteprofilepicture const success = await this.pupPage.evaluate((chatid) => {')
         const success = await this.pupPage.evaluate((chatid) => {
             return window.WWebJS.deletePicture(chatid);
         }, this.info.wid._serialized);
+        this.debugLog('after deleteprofilepicture const success = await this.pupPage.evaluate((chatid) => {')
 
         return success;
     }
@@ -1679,7 +1825,8 @@ class Client extends EventEmitter {
      */
     async addOrRemoveLabels(labelIds, chatIds) {
 
-        return this.pupPage.evaluate(async (labelIds, chatIds) => {
+        this.debugLog('before addorremovelabels return this.pupPage.evaluate(async (labelIds, chatIds) => {')
+        const ret = this.pupPage.evaluate(async (labelIds, chatIds) => {
             if (['smba', 'smbi'].indexOf(window.Store.Conn.platform) === -1) {
                 throw '[LT01] Only Whatsapp business';
             }
@@ -1698,6 +1845,8 @@ class Client extends EventEmitter {
 
             return await window.Store.Label.addOrRemoveLabels(actions, chats);
         }, labelIds, chatIds);
+        this.debugLog('after addorremovelabels return this.pupPage.evaluate(async (labelIds, chatIds) => {')
+        return ret;
     }
 
     /**
@@ -1716,10 +1865,13 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<GroupMembershipRequest>>} An array of membership requests
      */
     async getGroupMembershipRequests(groupId) {
-        return await this.pupPage.evaluate(async (groupId) => {
+        this.debugLog('before getgroupmerbershiprequest const ret =  await this.pupPage.evaluate(async (groupId) => {')
+        const ret = await this.pupPage.evaluate(async (groupId) => {
             const groupWid = window.Store.WidFactory.createWid(groupId);
             return await window.Store.MembershipRequestUtils.getMembershipApprovalRequests(groupWid);
         }, groupId);
+        this.debugLog('after getgroupmerbershiprequest const ret =  await this.pupPage.evaluate(async (groupId) => {')
+        return ret;
     }
 
     /**
@@ -1744,10 +1896,14 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<MembershipRequestActionResult>>} Returns an array of requester IDs whose membership requests were approved and an error for each requester, if any occurred during the operation. If there are no requests, an empty array will be returned
      */
     async approveGroupMembershipRequests(groupId, options = {}) {
-        return await this.pupPage.evaluate(async (groupId, options) => {
+        this.debugLog('before approvegroupmerbershiprequests const ret =  await this.pupPage.evaluate(async (groupId, options) => {')
+        const ret = await this.pupPage.evaluate(async (groupId, options) => {
             const { requesterIds = null, sleep = [250, 500] } = options;
             return await window.WWebJS.membershipRequestAction(groupId, 'Approve', requesterIds, sleep);
         }, groupId, options);
+        this.debugLog('after approvegroupmerbershiprequests const ret =  await this.pupPage.evaluate(async (groupId, options) => {')
+
+        return ret;
     }
 
     /**
@@ -1757,10 +1913,14 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<MembershipRequestActionResult>>} Returns an array of requester IDs whose membership requests were rejected and an error for each requester, if any occurred during the operation. If there are no requests, an empty array will be returned
      */
     async rejectGroupMembershipRequests(groupId, options = {}) {
-        return await this.pupPage.evaluate(async (groupId, options) => {
+        this.debugLog('before rejectgroupmerbershiprequests const ret =  await this.pupPage.evaluate(async (groupId, options) => {')
+        const ret = await this.pupPage.evaluate(async (groupId, options) => {
             const { requesterIds = null, sleep = [250, 500] } = options;
             return await window.WWebJS.membershipRequestAction(groupId, 'Reject', requesterIds, sleep);
         }, groupId, options);
+        this.debugLog('after rejectgroupmerbershiprequests const ret =  await this.pupPage.evaluate(async (groupId, options) => {')
+
+        return ret;
     }
 
 
@@ -1769,6 +1929,7 @@ class Client extends EventEmitter {
      * @param {boolean} flag true/false
      */
     async setAutoDownloadAudio(flag) {
+        this.debugLog('before setautodownloadaudio await this.pupPage.evaluate(async flag => {')
         await this.pupPage.evaluate(async flag => {
             const autoDownload = window.Store.Settings.getAutoDownloadAudio();
             if (autoDownload === flag) {
@@ -1777,6 +1938,7 @@ class Client extends EventEmitter {
             await window.Store.Settings.setAutoDownloadAudio(flag);
             return flag;
         }, flag);
+        this.debugLog('after setautodownloadaudio await this.pupPage.evaluate(async flag => {')
     }
 
     /**
@@ -1784,6 +1946,7 @@ class Client extends EventEmitter {
      * @param {boolean} flag true/false
      */
     async setAutoDownloadDocuments(flag) {
+        this.debugLog('before setautodownloaddocuments await this.pupPage.evaluate(async flag => {')
         await this.pupPage.evaluate(async flag => {
             const autoDownload = window.Store.Settings.getAutoDownloadDocuments();
             if (autoDownload === flag) {
@@ -1792,6 +1955,7 @@ class Client extends EventEmitter {
             await window.Store.Settings.setAutoDownloadDocuments(flag);
             return flag;
         }, flag);
+        this.debugLog('after setautodownloaddocuments await this.pupPage.evaluate(async flag => {')
     }
 
     /**
@@ -1799,6 +1963,7 @@ class Client extends EventEmitter {
      * @param {boolean} flag true/false
      */
     async setAutoDownloadPhotos(flag) {
+        this.debugLog('before setautodownloadphotos await this.pupPage.evaluate(async flag => {')
         await this.pupPage.evaluate(async flag => {
             const autoDownload = window.Store.Settings.getAutoDownloadPhotos();
             if (autoDownload === flag) {
@@ -1807,6 +1972,7 @@ class Client extends EventEmitter {
             await window.Store.Settings.setAutoDownloadPhotos(flag);
             return flag;
         }, flag);
+        this.debugLog('after setautodownloadphotos await this.pupPage.evaluate(async flag => {')
     }
 
     /**
@@ -1814,6 +1980,7 @@ class Client extends EventEmitter {
      * @param {boolean} flag true/false
      */
     async setAutoDownloadVideos(flag) {
+        this.debugLog('before setautodownloadvideos await this.pupPage.evaluate(async flag => {')
         await this.pupPage.evaluate(async flag => {
             const autoDownload = window.Store.Settings.getAutoDownloadVideos();
             if (autoDownload === flag) {
@@ -1822,6 +1989,7 @@ class Client extends EventEmitter {
             await window.Store.Settings.setAutoDownloadVideos(flag);
             return flag;
         }, flag);
+        this.debugLog('after setautodownloadvideos await this.pupPage.evaluate(async flag => {')
     }
 
     /**
@@ -1832,13 +2000,17 @@ class Client extends EventEmitter {
      * @returns {Promise<number>}
      */
     async getContactDeviceCount(userId) {
-        return await this.pupPage.evaluate(async (userId) => {
+        this.debugLog( 'before getcontactdevicecount const ret =  await this.pupPage.evaluate(async (userId) => {')
+        const ret =  await this.pupPage.evaluate(async (userId) => {
             const devices = await window.Store.DeviceList.getDeviceIds([window.Store.WidFactory.createWid(userId)]);
             if (devices && devices.length && devices[0] != null && typeof devices[0].devices == 'object') {
                 return devices[0].devices.length;
             }
             return 0;
         }, userId);
+        this.debugLog( 'after getcontactdevicecount const ret =  await this.pupPage.evaluate(async (userId) => {')
+
+        return ret;
     }
 
     /**
@@ -1847,7 +2019,9 @@ class Client extends EventEmitter {
      * @return {Promise<boolean>} True if operation completed successfully, false otherwise.
      */
     async syncHistory(chatId) {
-        return await this.pupPage.evaluate(async (chatId) => {
+
+        this.debugLog('before synchistory const ret =  await this.pupPage.evaluate(async (chatId) => {')
+        const ret =  await this.pupPage.evaluate(async (chatId) => {
             const chat = await window.WWebJS.getChat(chatId);
             if (chat.endOfHistoryTransferType === 0) {
                 await window.Store.HistorySync.sendPeerDataOperationRequest(3, {
@@ -1857,6 +2031,9 @@ class Client extends EventEmitter {
             }
             return false;
         }, chatId);
+        this.debugLog('after synchistory const ret =  await this.pupPage.evaluate(async (chatId) => {')
+
+        return ret;
     }
 
     debugLog(msg) {
