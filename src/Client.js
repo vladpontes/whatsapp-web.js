@@ -90,13 +90,17 @@ class Client extends EventEmitter {
         this.debugEnabled = process.env.WW_DEBUG === 'true';
         console.log('ENABLE LOG WITH WW_DEBUG=TRUE V19');
         this.injecting = false;
+        this.emit = (some, more)=>{
+            this.debugLog(some, more)
+            super.emit(some, more)
+        }
 
     }
     /**
      * Injection logic
      * Private function
      */
-    async inject(pageParam) {
+    async inject() {
         this.injecting = true;
 
         await this.pupPage.waitForFunction('window.Debug?.VERSION != undefined', { timeout: this.options.authTimeoutMs });
@@ -201,37 +205,6 @@ class Client extends EventEmitter {
 
 
         await exposeFunctionIfAbsent(this.pupPage, 'onAppStateHasSyncedEvent', async () => {
-
-            // async function fetchClientInfo(page, retries = 3, delay = 1500) {
-            //     // Função para verificar a estabilidade da página antes do evaluate
-            //     await page.waitForFunction(
-            //         'window.Store && window.Store.Conn && window.Store.User',
-            //         { timeout: 2000 }
-            //     );
-
-            //     for (let attempt = 0; attempt < retries; attempt++) {
-            //         try {
-            //             // Executa o evaluate após verificar que os objetos necessários estão disponíveis
-            //             return await page.evaluate(() => {
-            //                 const connectionData = window.Store.Conn.serialize();
-            //                 const userId = window.Store.User.getMeUser();
-            //                 return { ...connectionData, wid: userId };
-            //             });
-            //         } catch (error) {
-            //             console.error(`Erro ao buscar informações do cliente (tentativa ${attempt + 1}):`, error);
-
-            //             // Se o erro foi de contexto destruído, esperamos antes de tentar novamente
-            //             if (error.message.includes("Execution context was destroyed")) {
-            //                 await new Promise(resolve => setTimeout(resolve, delay));
-            //             } else {
-            //                 throw error; // Se for outro erro, encerra a função
-            //             }
-            //         }
-            //     }
-
-            //     console.warn("Não foi possível buscar as informações do cliente após várias tentativas.");
-            //     return null; // Retorna null se todas as tentativas falharem
-            // }
 
             const authEventPayload = await this.authStrategy.getAuthEventPayload();
             /**
@@ -433,13 +406,6 @@ class Client extends EventEmitter {
         await this.initWebVersionCache();
         this.debugLog('after await this.initWebVersionCache()')
 
-        await this.pupPage.setRequestInterception(true);
-        this.pupPage.on('request', async (req) => {
-            this.debugLog('url:::: true' + req.url())
-            req.continue();
-        });
-
-
 
 
         // ocVersion (isOfficialClient patch)
@@ -487,7 +453,7 @@ class Client extends EventEmitter {
                     this.debugLog('waiting injecting');
                 }
                 this.debugLog('before second inject')
-                await this.inject(page); // Aguarda a execução de `inject`
+                await this.inject(); // Aguarda a execução de `inject`
                 resolve(true);
             });
 
@@ -501,9 +467,12 @@ class Client extends EventEmitter {
         this.debugLog('method initialize end.')
 
         if (!this.injecting) {
-            setTimeout(() => {
+            setTimeout(async () => {
                 if (!this.injecting) {
-                    this.inject(page);
+                    const injected = await this.pupPage.evaluate(async () => {
+                        return typeof window.Store !== 'undefined' && typeof window.WWebJS !== 'undefined';
+                    });
+                    this.inject();
                 }
             }, 2500);
             // this.inject();
@@ -947,7 +916,7 @@ class Client extends EventEmitter {
                         body: versionContent
                     });
                 } else {
-                    this.debugLog('urlCache else::::' + req.url())
+                    this.debugLog('urlCache::::' + req.url())
 
                     req.continue();
                 }
