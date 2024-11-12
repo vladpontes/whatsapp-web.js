@@ -348,7 +348,7 @@ class Client extends EventEmitter {
 
 
         } else {
-            this.debugLog('::: else ')
+            this.debugLog('::: else userAgent:::', this.options.userAgent)
 
             const browserArgs = [...(puppeteerOpts.args || [])];
             if (!browserArgs.find(arg => arg.includes('--user-agent'))) {
