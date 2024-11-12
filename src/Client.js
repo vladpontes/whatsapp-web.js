@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V18');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V19');
         this.injecting = false;
 
     }
@@ -432,6 +432,15 @@ class Client extends EventEmitter {
         this.debugLog('before await this.initWebVersionCache()')
         await this.initWebVersionCache();
         this.debugLog('after await this.initWebVersionCache()')
+
+        await this.pupPage.setRequestInterception(true);
+        this.pupPage.on('request', async (req) => {
+            this.debugLog('url:::: true' + req.url())
+            req.continue();
+        });
+
+
+
 
         // ocVersion (isOfficialClient patch)
         // remove after 2.3000.x hard release
@@ -926,27 +935,22 @@ class Client extends EventEmitter {
         const versionContent = await webCache.resolve(requestedVersion);
         this.debugLog('versionContent::::' + versionContent)
 
-        if (true) {
+        if (versionContent) {
             await this.pupPage.setRequestInterception(true);
             this.pupPage.on('request', async (req) => {
-                // if (req.isNavigationRequest()) {
-                //     this.debugLog('navigation')
+                if (req.url() === WhatsWebURL) {
+                    this.debugLog('urlCache:::: true' + req.url())
 
-                //     req.abort();
-                // } else
-                    if (req.url() === WhatsWebURL) {
-                        this.debugLog('url:::: true' + req.url())
+                    req.respond({
+                        status: 200,
+                        contentType: 'text/html',
+                        body: versionContent
+                    });
+                } else {
+                    this.debugLog('urlCache else::::' + req.url())
 
-                        req.respond({
-                            status: 200,
-                            contentType: 'text/html',
-                            body: versionContent
-                        });
-                    } else {
-                        this.debugLog('url::::' + req.url())
-
-                        req.continue();
-                    }
+                    req.continue();
+                }
             });
         } else {
             this.pupPage.on('response', async (res) => {
