@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V15');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V16');
         this.injecting = false;
 
     }
@@ -926,7 +926,7 @@ class Client extends EventEmitter {
         const versionContent = await webCache.resolve(requestedVersion);
         this.debugLog('versionContent::::' + versionContent)
 
-        if (versionContent) {
+        if (true) {
             await this.pupPage.setRequestInterception(true);
             this.pupPage.on('request', async (req) => {
                 if (request.isNavigationRequest()) {
