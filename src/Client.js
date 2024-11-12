@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V10');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V11');
         this.injecting = false;
 
     }
@@ -96,11 +96,11 @@ class Client extends EventEmitter {
      * Injection logic
      * Private function
      */
-    async inject() {
+    async inject(pageParam) {
         this.injecting = true;
-        await page.setRequestInterception(true);
+        await pageParam.setRequestInterception(true);
 
-        page.on('request', (request) => {
+        pageParam.on('request', (request) => {
             // Bloqueia requisições de navegação e redirecionamentos
             if (request.isNavigationRequest()) {
                 request.abort();
@@ -362,7 +362,7 @@ class Client extends EventEmitter {
         });
         this.debugLog('after await this.pupPage.evaluate(() => {')
         this.injecting = false;
-        await page.setRequestInterception(false);
+        await pageParam.setRequestInterception(false);
 
     }
 
@@ -488,7 +488,7 @@ class Client extends EventEmitter {
                     this.debugLog('waiting injecting');
                 }
                 this.debugLog('before second inject')
-                await this.inject(); // Aguarda a execução de `inject`
+                await this.inject(page); // Aguarda a execução de `inject`
                 resolve(true);
             });
 
@@ -504,7 +504,7 @@ class Client extends EventEmitter {
         if (!this.injecting) {
             setTimeout(() => {
                 if (!this.injecting) {
-                    this.inject();
+                    this.inject(page);
                 }
             }, 2500);
             // this.inject();
