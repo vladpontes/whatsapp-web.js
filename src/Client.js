@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V5');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V6');
         this.injecting = false;
 
     }
@@ -461,6 +461,7 @@ class Client extends EventEmitter {
             this.debugLog(`stringfy::${JSON.stringify(frame)}`);
 
             if (frame.url().includes('post_logout=1') || this.lastLoggedOut) {
+                this.debugLog('if frame.url().includes() || this.lastLoggedOut')
                 this.emit(Events.DISCONNECTED, 'LOGOUT');
                 await this.authStrategy.logout();
                 await this.authStrategy.beforeBrowserInitialized();
