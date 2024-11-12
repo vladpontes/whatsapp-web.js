@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V11');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V12');
         this.injecting = false;
 
     }
@@ -361,8 +361,8 @@ class Client extends EventEmitter {
             });
         });
         this.debugLog('after await this.pupPage.evaluate(() => {')
-        this.injecting = false;
         await pageParam.setRequestInterception(false);
+        this.injecting = false;
 
     }
 
