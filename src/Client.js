@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V16');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V17');
         this.injecting = false;
 
     }
