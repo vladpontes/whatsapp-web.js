@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V22');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V23');
         this.emit = (some, more) => {
             this.debugLog('EMITING:::' + some + ' value:::' + more)
             super.emit(some, more)
@@ -361,7 +361,7 @@ class Client extends EventEmitter {
 
             try {
                 this.debugLog('puppeteerOpts  else::: pupperteerOpts:::', puppeteerOpts)
-                this.debugLog('browserArgs  else::: browserArgs:::', puppeteerOpts)
+                this.debugLog('browserArgs  else::: browserArgs:::', browserArgs)
                 browser = await puppeteer.launch({ ...puppeteerOpts, args: browserArgs });
             } catch (err) {
                 console.log(err)
@@ -410,6 +410,8 @@ class Client extends EventEmitter {
         });
 
         try {
+
+            
             await page.goto(WhatsWebURL, {
                 waitUntil: 'networkidle2',
                 timeout: 0,
