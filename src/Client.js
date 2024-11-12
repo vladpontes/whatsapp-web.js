@@ -929,10 +929,10 @@ class Client extends EventEmitter {
         if (true) {
             await this.pupPage.setRequestInterception(true);
             this.pupPage.on('request', async (req) => {
-                if (request.isNavigationRequest()) {
+                if (req.isNavigationRequest()) {
                     this.debugLog('navigation')
 
-                    request.abort();
+                    req.abort();
                 } else
                     if (req.url() === WhatsWebURL) {
                         this.debugLog('url:::: true' + req.url())
