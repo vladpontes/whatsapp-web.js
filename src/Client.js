@@ -89,6 +89,7 @@ class Client extends EventEmitter {
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
         console.log('ENABLE LOG WITH WW_DEBUG=TRUE');
+        this.injecting = false;
 
     }
     /**
@@ -96,6 +97,8 @@ class Client extends EventEmitter {
      * Private function
      */
     async inject() {
+        this.injecting = true;
+
         await this.pupPage.waitForFunction('window.Debug?.VERSION != undefined', { timeout: this.options.authTimeoutMs });
 
         const version = await this.getWWebVersion();
@@ -130,7 +133,7 @@ class Client extends EventEmitter {
             state = window.AuthStore.AppState.state;
             return state == 'UNPAIRED' || state == 'UNPAIRED_IDLE';
         });
-        this.debugLog('after const needAuthentication = await this.pupPage.evaluate')
+        this.debugLog('after const needAuthentication = await this.pupPage.evaluate needAuthentication::' + needAuthentication)
 
 
         if (needAuthentication) {
@@ -198,36 +201,36 @@ class Client extends EventEmitter {
 
         await exposeFunctionIfAbsent(this.pupPage, 'onAppStateHasSyncedEvent', async () => {
 
-            async function fetchClientInfo(page, retries = 3, delay = 1500) {
-                // Função para verificar a estabilidade da página antes do evaluate
-                await page.waitForFunction(
-                    'window.Store && window.Store.Conn && window.Store.User',
-                    { timeout: 2000 }
-                );
+            // async function fetchClientInfo(page, retries = 3, delay = 1500) {
+            //     // Função para verificar a estabilidade da página antes do evaluate
+            //     await page.waitForFunction(
+            //         'window.Store && window.Store.Conn && window.Store.User',
+            //         { timeout: 2000 }
+            //     );
 
-                for (let attempt = 0; attempt < retries; attempt++) {
-                    try {
-                        // Executa o evaluate após verificar que os objetos necessários estão disponíveis
-                        return await page.evaluate(() => {
-                            const connectionData = window.Store.Conn.serialize();
-                            const userId = window.Store.User.getMeUser();
-                            return { ...connectionData, wid: userId };
-                        });
-                    } catch (error) {
-                        console.error(`Erro ao buscar informações do cliente (tentativa ${attempt + 1}):`, error);
+            //     for (let attempt = 0; attempt < retries; attempt++) {
+            //         try {
+            //             // Executa o evaluate após verificar que os objetos necessários estão disponíveis
+            //             return await page.evaluate(() => {
+            //                 const connectionData = window.Store.Conn.serialize();
+            //                 const userId = window.Store.User.getMeUser();
+            //                 return { ...connectionData, wid: userId };
+            //             });
+            //         } catch (error) {
+            //             console.error(`Erro ao buscar informações do cliente (tentativa ${attempt + 1}):`, error);
 
-                        // Se o erro foi de contexto destruído, esperamos antes de tentar novamente
-                        if (error.message.includes("Execution context was destroyed")) {
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                        } else {
-                            throw error; // Se for outro erro, encerra a função
-                        }
-                    }
-                }
+            //             // Se o erro foi de contexto destruído, esperamos antes de tentar novamente
+            //             if (error.message.includes("Execution context was destroyed")) {
+            //                 await new Promise(resolve => setTimeout(resolve, delay));
+            //             } else {
+            //                 throw error; // Se for outro erro, encerra a função
+            //             }
+            //         }
+            //     }
 
-                console.warn("Não foi possível buscar as informações do cliente após várias tentativas.");
-                return null; // Retorna null se todas as tentativas falharem
-            }
+            //     console.warn("Não foi possível buscar as informações do cliente após várias tentativas.");
+            //     return null; // Retorna null se todas as tentativas falharem
+            // }
 
             const authEventPayload = await this.authStrategy.getAuthEventPayload();
             /**
@@ -269,38 +272,39 @@ class Client extends EventEmitter {
                     this.debugLog('AFTER await this.pupPage.evaluate(ExposeLegacyStore);')
                 }
 
-                this.debugLog('BEFORE await setTimeout;')
-                await new Promise(r => setTimeout(r, 5000));
-                this.debugLog('AFTER await setTimeout;')
+                // this.debugLog('BEFORE await setTimeout;')
+                // await new Promise(r => setTimeout(r, 5000));
+                // this.debugLog('AFTER await setTimeout;')
 
 
 
                 // this.debugLog('BEFORE window.Store != undefined')
 
-                // // Check window.Store Injection
-                // await this.pupPage.waitForFunction('window.Store != undefined');
-                // this.debugLog('AFTER window.Store != undefined')
+                // Check window.Store Injection
+                this.debugLog('BEFORE window.Store != undefined await this.pupPage.waitForFunction')
+                await this.pupPage.waitForFunction('window.Store && window.Store.Conn && window.Store.User');
+                this.debugLog('AFTER window.Store != undefined await this.pupPage.waitForFunction')
 
 
-                // this.debugLog('BEFORE this.pupPage.evaluate')
-
-                // /**
-                //      * Current connection information
-                //      * @type {ClientInfo}
-                //      */
-                // this.info = new ClientInfo(this, await this.pupPage.evaluate(() => {
-                //     return { ...window.Store.Conn.serialize(), wid: window.Store.User.getMeUser() };
-                // }));
+                this.debugLog('BEFORE this.info = new ClientInfo(this, await this.pupPage.evaluate(() => {')
+                /**
+                 * Current connection information
+                 * @type {ClientInfo}
+                */
+                this.info = new ClientInfo(this, await this.pupPage.evaluate(() => {
+                    return { ...window.Store.Conn.serialize(), wid: window.Store.User.getMeUser() };
+                }));
+                this.debugLog('AFTER this.info = new ClientInfo(this, await this.pupPage.evaluate(() => {')
 
                 // Uso
-                const clientInfoData = await fetchClientInfo(this.pupPage);
-                if (clientInfoData) {
-                    this.info = new ClientInfo(this, clientInfoData);
-                } else {
-                    console.warn("Não foi possível inicializar as informações do cliente.");
-                }
+                // const clientInfoData = await fetchClientInfo(this.pupPage);
+                // if (clientInfoData) {
+                //     this.info = new ClientInfo(this, clientInfoData);
+                // } else {
+                //     console.warn("Não foi possível inicializar as informações do cliente.");
+                // }
 
-                this.debugLog('AFTER this.pupPage.evaluate')
+
 
                 this.interface = new InterfaceController(this);
 
@@ -347,6 +351,7 @@ class Client extends EventEmitter {
             });
         });
         this.debugLog('after await this.pupPage.evaluate(() => {')
+        this.injecting(false);
     }
 
     /**
@@ -452,7 +457,9 @@ class Client extends EventEmitter {
 
 
         this.pupPage.on('framenavigated', async (frame) => {
-            this.debugLog(`framenavigated ${frame.url}`)
+            this.debugLog(`framenavigated this is the url:::${frame.url}`);
+            this.debugLog(`${JSON.stringify(frame)}`);
+
             if (frame.url().includes('post_logout=1') || this.lastLoggedOut) {
                 this.emit(Events.DISCONNECTED, 'LOGOUT');
                 await this.authStrategy.logout();
@@ -462,7 +469,18 @@ class Client extends EventEmitter {
                 this.debugLog('on framenavigated:::frame.url().includes(post_logout=1) || this.lastLoggedOut')
             }
             this.debugLog('before second inject')
-            await this.inject();
+            await new Promise(async (resolve) => {
+                return async () => {
+                    while (this.injecting) {
+                        setTimeout(() => {
+                            this.debugLog('waiting injecting')
+                        }, 1000);
+                    }
+                    this.inject();
+                    resolve(true)
+                }
+            })
+
             this.debugLog('after second inject')
 
 
@@ -2001,15 +2019,15 @@ class Client extends EventEmitter {
      * @returns {Promise<number>}
      */
     async getContactDeviceCount(userId) {
-        this.debugLog( 'before getcontactdevicecount const ret =  await this.pupPage.evaluate(async (userId) => {')
-        const ret =  await this.pupPage.evaluate(async (userId) => {
+        this.debugLog('before getcontactdevicecount const ret =  await this.pupPage.evaluate(async (userId) => {')
+        const ret = await this.pupPage.evaluate(async (userId) => {
             const devices = await window.Store.DeviceList.getDeviceIds([window.Store.WidFactory.createWid(userId)]);
             if (devices && devices.length && devices[0] != null && typeof devices[0].devices == 'object') {
                 return devices[0].devices.length;
             }
             return 0;
         }, userId);
-        this.debugLog( 'after getcontactdevicecount const ret =  await this.pupPage.evaluate(async (userId) => {')
+        this.debugLog('after getcontactdevicecount const ret =  await this.pupPage.evaluate(async (userId) => {')
 
         return ret;
     }
@@ -2022,7 +2040,7 @@ class Client extends EventEmitter {
     async syncHistory(chatId) {
 
         this.debugLog('before synchistory const ret =  await this.pupPage.evaluate(async (chatId) => {')
-        const ret =  await this.pupPage.evaluate(async (chatId) => {
+        const ret = await this.pupPage.evaluate(async (chatId) => {
             const chat = await window.WWebJS.getChat(chatId);
             if (chat.endOfHistoryTransferType === 0) {
                 await window.Store.HistorySync.sendPeerDataOperationRequest(3, {
