@@ -88,10 +88,9 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V19');
-        this.injecting = false;
-        this.emit = (some, more)=>{
-            this.debugLog(some, more)
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V20');
+        this.emit = (some, more) => {
+            this.debugLog('EMITING:::' + some + ' value:::' + more)
             super.emit(some, more)
         }
 
@@ -101,7 +100,6 @@ class Client extends EventEmitter {
      * Private function
      */
     async inject() {
-        this.injecting = true;
 
         await this.pupPage.waitForFunction('window.Debug?.VERSION != undefined', { timeout: this.options.authTimeoutMs });
 
@@ -270,15 +268,6 @@ class Client extends EventEmitter {
                 }));
                 this.debugLog('AFTER this.info = new ClientInfo(this, await this.pupPage.evaluate(() => {')
 
-                // Uso
-                // const clientInfoData = await fetchClientInfo(this.pupPage);
-                // if (clientInfoData) {
-                //     this.info = new ClientInfo(this, clientInfoData);
-                // } else {
-                //     console.warn("Não foi possível inicializar as informações do cliente.");
-                // }
-
-
 
                 this.interface = new InterfaceController(this);
 
@@ -325,8 +314,6 @@ class Client extends EventEmitter {
             });
         });
         this.debugLog('after await this.pupPage.evaluate(() => {')
-        this.injecting = false;
-
     }
 
     /**
@@ -422,15 +409,20 @@ class Client extends EventEmitter {
             };
         });
 
-        await page.goto(WhatsWebURL, {
-            waitUntil: 'load',
-            timeout: 0,
-            referer: 'https://whatsapp.com/'
-        });
+        try {
+            await page.goto(WhatsWebURL, {
+                waitUntil: 'networkidle2',
+                timeout: 0,
+                referer: 'https://whatsapp.com/'
+            });
+            await page.waitForSelector('window.Store && window.Store.Conn && window.Store.User', { timeout: 5000 });
+        } catch (error) {
+            console.error("Erro ao navegar para o WhatsWebURL:", error);
+        }
 
-        // this.debugLog('before first inject')
-        // await this.inject();
-        // this.debugLog('after first inject')
+        this.debugLog('before first inject')
+        await this.inject();
+        this.debugLog('after first inject')
 
 
         this.pupPage.on('framenavigated', async (frame) => {
@@ -446,18 +438,20 @@ class Client extends EventEmitter {
                 this.lastLoggedOut = false;
                 this.debugLog('on framenavigated:::frame.url().includes(post_logout=1) || this.lastLoggedOut')
             }
-            // await this.inject()
-            await new Promise(async (resolve) => {
-                while (this.injecting) {
-                    await new Promise(res => setTimeout(res, 1000)); // Aguarda 1 segundo
-                    this.debugLog('waiting injecting');
-                }
-                this.debugLog('before second inject')
-                await this.inject(); // Aguarda a execução de `inject`
-                resolve(true);
-            });
 
-            this.debugLog('after second inject')
+
+            if (frame.url() === WhatsWebURL) {  // Verifica se a URL é a correta
+                try {
+                    this.debugLog('before second inject')
+                    await frame.waitForFunction('document.readyState === "complete"');
+                    await this.inject();
+                    this.debugLog('after second inject')
+                } catch (error) {
+                    console.error("Erro ao injetar após navegação:", error);
+                }
+            }
+
+
 
             this.debugLog('on framenavigated:::end')
 
@@ -466,17 +460,6 @@ class Client extends EventEmitter {
 
         this.debugLog('method initialize end.')
 
-        if (!this.injecting) {
-            setTimeout(async () => {
-                if (!this.injecting) {
-                    const injected = await this.pupPage.evaluate(async () => {
-                        return typeof window.Store !== 'undefined' && typeof window.WWebJS !== 'undefined';
-                    });
-                    this.inject();
-                }
-            }, 2500);
-            // this.inject();
-        }
 
     }
 
