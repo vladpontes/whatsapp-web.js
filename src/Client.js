@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V12');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V13');
         this.injecting = false;
 
     }
@@ -994,11 +994,11 @@ class Client extends EventEmitter {
      * @returns {Promise<string>}
      */
     async getWWebVersion() {
-        this.debugLog('before const ret =  await this.pupPage.evaluate(() => {')
+        this.debugLog('before getWWebVersion const ret =  await this.pupPage.evaluate(() => {')
         const ret = await this.pupPage.evaluate(() => {
             return window.Debug.VERSION;
         });
-        this.debugLog('after const ret =  await this.pupPage.evaluate(() => {')
+        this.debugLog('after getWWebVersion const ret =  await this.pupPage.evaluate(() => {')
 
         return ret;
     }
@@ -1324,12 +1324,12 @@ class Client extends EventEmitter {
      * @returns {WAState} 
      */
     async getState() {
-        this.debugLog('before const ret =  await this.pupPage.evaluate(() => {')
+        this.debugLog('before getState const ret =  await this.pupPage.evaluate(() => {')
         const ret = await this.pupPage.evaluate(() => {
             if (!window.Store) return null;
             return window.Store.AppState.state;
         });
-        this.debugLog('after const ret =  await this.pupPage.evaluate(() => {')
+        this.debugLog('after getState const ret =  await this.pupPage.evaluate(() => {')
         return ret;
     }
 
@@ -1337,11 +1337,11 @@ class Client extends EventEmitter {
      * Marks the client as online
      */
     async sendPresenceAvailable() {
-        this.debugLog('before const ret =  await this.pupPage.evaluate(() => {')
+        this.debugLog('before sendPresenceAvailable const ret =  await this.pupPage.evaluate(() => {')
         const ret = await this.pupPage.evaluate(() => {
             return window.Store.PresenceUtils.sendPresenceAvailable();
         });
-        this.debugLog('after const ret =  await this.pupPage.evaluate(() => {')
+        this.debugLog('after sendPresenceAvailable const ret =  await this.pupPage.evaluate(() => {')
         return ret;
     }
 
@@ -1349,11 +1349,11 @@ class Client extends EventEmitter {
      * Marks the client as unavailable
      */
     async sendPresenceUnavailable() {
-        this.debugLog('before const ret =  await this.pupPage.evaluate(() => {')
+        this.debugLog('before sendPresenceUnavailable const ret =  await this.pupPage.evaluate(() => {')
         const ret = await this.pupPage.evaluate(() => {
             return window.Store.PresenceUtils.sendPresenceUnavailable();
         });
-        this.debugLog('after const ret =  await this.pupPage.evaluate(() => {')
+        this.debugLog('after sendPresenceUnavailable const ret =  await this.pupPage.evaluate(() => {')
         return ret;
     }
 
