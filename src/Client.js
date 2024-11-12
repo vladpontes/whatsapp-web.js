@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V2');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V3');
         this.injecting = false;
 
     }
@@ -469,18 +469,18 @@ class Client extends EventEmitter {
                 this.debugLog('on framenavigated:::frame.url().includes(post_logout=1) || this.lastLoggedOut')
             }
             this.debugLog('before second inject')
-            await this.inject()
-            // await new Promise(async (resolve) => {
-            //     return async () => {
-            //         while (this.injecting) {
-            //             setTimeout(() => {
-            //                 this.debugLog('waiting injecting')
-            //             }, 1000);
-            //         }
-            //         this.inject();
-            //         resolve(true)
-            //     }
-            // })
+            // await this.inject()
+            await new Promise(async (resolve) => {
+                return async () => {
+                    while (this.injecting) {
+                        setTimeout(() => {
+                            this.debugLog('waiting injecting')
+                        }, 1000);
+                    }
+                    this.inject();
+                    resolve(true)
+                }
+            })
 
             this.debugLog('after second inject')
 
