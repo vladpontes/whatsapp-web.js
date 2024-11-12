@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V6');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V7');
         this.injecting = false;
 
     }
@@ -243,7 +243,7 @@ class Client extends EventEmitter {
             const injected = await this.pupPage.evaluate(async () => {
                 return typeof window.Store !== 'undefined' && typeof window.WWebJS !== 'undefined';
             });
-            this.debugLog('after const injected = await this.pupPage.evaluate(async () => {')
+            this.debugLog('after const injected = await this.pupPage.evaluate(async () => { injected:::' + injected)
 
 
 
@@ -451,9 +451,9 @@ class Client extends EventEmitter {
             referer: 'https://whatsapp.com/'
         });
 
-        this.debugLog('before first inject')
-        await this.inject();
-        this.debugLog('after first inject')
+        // this.debugLog('before first inject')
+        // await this.inject();
+        // this.debugLog('after first inject')
 
 
         this.pupPage.on('framenavigated', async (frame) => {
