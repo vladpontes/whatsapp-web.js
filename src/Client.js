@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V14');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V15');
         this.injecting = false;
 
     }
@@ -148,6 +148,7 @@ class Client extends EventEmitter {
                 this.emit(Events.AUTHENTICATION_FAILURE, failureEventPayload);
                 await this.destroy();
                 if (restart) {
+                    this.debugLog('RESTARTING!!')
                     // session restore failed so try again but without session to force new authentication
                     return this.initialize();
                 }
@@ -923,18 +924,18 @@ class Client extends EventEmitter {
 
         const requestedVersion = this.options.webVersion;
         const versionContent = await webCache.resolve(requestedVersion);
-        log.debugLog('versionContent::::' + versionContent)
+        this.debugLog('versionContent::::' + versionContent)
 
         if (versionContent) {
             await this.pupPage.setRequestInterception(true);
             this.pupPage.on('request', async (req) => {
                 if (request.isNavigationRequest()) {
-                    log.debugLog('navigation')
+                    this.debugLog('navigation')
 
                     request.abort();
                 } else
                     if (req.url() === WhatsWebURL) {
-                        log.debugLog('url:::: true' + req.url())
+                        this.debugLog('url:::: true' + req.url())
 
                         req.respond({
                             status: 200,
@@ -942,7 +943,7 @@ class Client extends EventEmitter {
                             body: versionContent
                         });
                     } else {
-                        log.debugLog('url::::' + req.url())
+                        this.debugLog('url::::' + req.url())
 
                         req.continue();
                     }
