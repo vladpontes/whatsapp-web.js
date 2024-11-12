@@ -471,16 +471,13 @@ class Client extends EventEmitter {
             this.debugLog('before second inject')
             // await this.inject()
             await new Promise(async (resolve) => {
-                return async () => {
-                    while (this.injecting) {
-                        setTimeout(() => {
-                            this.debugLog('waiting injecting')
-                        }, 1000);
-                    }
-                    this.inject();
-                    resolve(true)
+                while (this.injecting) {
+                    await new Promise(res => setTimeout(res, 1000)); // Aguarda 1 segundo
+                    this.debugLog('waiting injecting');
                 }
-            })
+                await this.inject(); // Aguarda a execução de `inject`
+                resolve(true);
+            });
 
             this.debugLog('after second inject')
 
