@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V9');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V10');
         this.injecting = false;
 
     }
@@ -98,6 +98,16 @@ class Client extends EventEmitter {
      */
     async inject() {
         this.injecting = true;
+        await page.setRequestInterception(true);
+
+        page.on('request', (request) => {
+            // Bloqueia requisições de navegação e redirecionamentos
+            if (request.isNavigationRequest()) {
+                request.abort();
+            } else {
+                request.continue();
+            }
+        });
 
         await this.pupPage.waitForFunction('window.Debug?.VERSION != undefined', { timeout: this.options.authTimeoutMs });
 
@@ -352,6 +362,8 @@ class Client extends EventEmitter {
         });
         this.debugLog('after await this.pupPage.evaluate(() => {')
         this.injecting = false;
+        await page.setRequestInterception(false);
+
     }
 
     /**
