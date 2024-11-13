@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V20');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V33');
         this.emit = (some, more) => {
             this.debugLog('EMITING:::' + some + ' value:::' + more)
             super.emit(some, more)
@@ -415,7 +415,7 @@ class Client extends EventEmitter {
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             });
-            await page.waitForSelector('window.Store && window.Store.Conn && window.Store.User', { timeout: 5000 });
+            // await page.waitForSelector('window.Store && window.Store.Conn && window.Store.User', { timeout: 5000 });
         } catch (error) {
             console.error("Erro ao navegar para o WhatsWebURL:", error);
         }
