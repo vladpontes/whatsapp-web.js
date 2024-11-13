@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V26');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V27');
         this.emit = (some, more) => {
             this.debugLog('EMITING:::' + some + ' value:::' + more)
             super.emit(some, more)
@@ -316,38 +316,12 @@ class Client extends EventEmitter {
         this.debugLog('after await this.pupPage.evaluate(() => {')
     }
 
-    async retryWithAbort(action, validationSelector, maxAttempts = 3, delay = 2000) {
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            try {
-                // Executa a ação principal (navegação para a URL)
-                await action();
-
-                // Aguarda até que o seletor de validação apareça, confirmando o carregamento correto
-                await page.waitForSelector(validationSelector, { timeout: 10000 });
-                console.log("Página carregada com sucesso e seletor encontrado!");
-
-                return; // Sai da função se tudo estiver correto
-
-            } catch (error) {
-                console.log(`Tentativa ${attempt + 1} falhou: ${error.message}`);
-
-                if (attempt < maxAttempts - 1) {
-                    // Espera um pouco antes de tentar novamente
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                } else {
-                    // Se todas as tentativas falharem, lança um erro
-                    throw new Error(`Todas as tentativas falharam após ${maxAttempts} tentativas.`);
-                }
-            }
-        }
-    }
-
     /**
      * Sets up events and requirements, kicks off authentication request
      */
     async initialize() {
 
-
+       
 
 
         let
@@ -439,9 +413,35 @@ class Client extends EventEmitter {
             };
         });
 
+        async function retryWithAbort(action, validationSelector, maxAttempts = 3, delay = 2000) {
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                try {
+                    // Executa a ação principal (navegação para a URL)
+                    await action();
+
+                    // Aguarda até que o seletor de validação apareça, confirmando o carregamento correto
+                    await page.waitForSelector(validationSelector, { timeout: 10000 });
+                    console.log("Página carregada com sucesso e seletor encontrado!");
+
+                    return; // Sai da função se tudo estiver correto
+
+                } catch (error) {
+                    console.log(`Tentativa ${attempt + 1} falhou: ${error.message}`);
+
+                    if (attempt < maxAttempts - 1) {
+                        // Espera um pouco antes de tentar novamente
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        // Se todas as tentativas falharem, lança um erro
+                        throw new Error(`Todas as tentativas falharam após ${maxAttempts} tentativas.`);
+                    }
+                }
+            }
+        }
+
 
         // Uso do retryWithAbort para tentar navegar até a página e verificar o seletor
-        await this.retryWithAbort(
+        await retryWithAbort(
             () => page.goto(WhatsWebURL, { waitUntil: 'networkidle2', timeout: 0, referer: 'https://whatsapp.com/' }),
             'window.Debug?.VERSION != undefined' // ou outro seletor ou condição que você deseja validar
         );
