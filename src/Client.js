@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V23');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V20');
         this.emit = (some, more) => {
             this.debugLog('EMITING:::' + some + ' value:::' + more)
             super.emit(some, more)
@@ -321,33 +321,6 @@ class Client extends EventEmitter {
      */
     async initialize() {
 
-        async function retryWithAbort(action, validationSelector, maxAttempts = 3, delay = 2000) {
-            for (let attempt = 0; attempt < maxAttempts; attempt++) {
-                try {
-                    // Executa a ação principal (navegação para a URL)
-                    await action();
-
-                    // Aguarda até que o seletor de validação apareça, confirmando o carregamento correto
-                    await page.waitForSelector(validationSelector, { timeout: 10000 });
-                    console.log("Página carregada com sucesso e seletor encontrado!");
-
-                    return; // Sai da função se tudo estiver correto
-
-                } catch (error) {
-                    console.log(`Tentativa ${attempt + 1} falhou: ${error.message}`);
-
-                    if (attempt < maxAttempts - 1) {
-                        // Espera um pouco antes de tentar novamente
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    } else {
-                        // Se todas as tentativas falharem, lança um erro
-                        throw new Error(`Todas as tentativas falharam após ${maxAttempts} tentativas.`);
-                    }
-                }
-            }
-        }
-
-
         let
             /**
              * @type {puppeteer.Browser}
@@ -375,7 +348,7 @@ class Client extends EventEmitter {
 
 
         } else {
-            this.debugLog('::: else userAgent:::', this.options.userAgent)
+            this.debugLog('::: else ')
 
             const browserArgs = [...(puppeteerOpts.args || [])];
             if (!browserArgs.find(arg => arg.includes('--user-agent'))) {
@@ -388,7 +361,7 @@ class Client extends EventEmitter {
 
             try {
                 this.debugLog('puppeteerOpts  else::: pupperteerOpts:::', puppeteerOpts)
-                this.debugLog('browserArgs  else::: browserArgs:::', browserArgs)
+                this.debugLog('browserArgs  else::: browserArgs:::', puppeteerOpts)
                 browser = await puppeteer.launch({ ...puppeteerOpts, args: browserArgs });
             } catch (err) {
                 console.log(err)
@@ -437,13 +410,12 @@ class Client extends EventEmitter {
         });
 
         try {
-
             await page.goto(WhatsWebURL, {
                 waitUntil: 'networkidle2',
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             });
-            // await page.waitForSelector('window.Debug?.VERSION != undefined', { timeout: 10000 });
+            await page.waitForSelector('window.Store && window.Store.Conn && window.Store.User', { timeout: 5000 });
         } catch (error) {
             console.error("Erro ao navegar para o WhatsWebURL:", error);
         }
