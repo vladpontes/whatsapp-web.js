@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V24');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V25');
         this.emit = (some, more) => {
             this.debugLog('EMITING:::' + some + ' value:::' + more)
             super.emit(some, more)
@@ -441,7 +441,7 @@ class Client extends EventEmitter {
         // Uso do retryWithAbort para tentar navegar até a página e verificar o seletor
         await retryWithAbort(
             () => page.goto(WhatsWebURL, { waitUntil: 'networkidle2', timeout: 0, referer: 'https://whatsapp.com/' }),
-            'span[data-icon="menu"]' // ou outro seletor ou condição que você deseja validar
+            'window.Debug?.VERSION != undefined' // ou outro seletor ou condição que você deseja validar
         );
 
         // try {
@@ -990,7 +990,7 @@ class Client extends EventEmitter {
         const ret = await this.pupPage.evaluate(() => {
             return window.Debug.VERSION;
         });
-        this.debugLog('after getWWebVersion const ret =  await this.pupPage.evaluate(() => {')
+        this.debugLog('after getWWebVersion const ret =  await this.pupPage.evaluate(() => {version:::' + ret)
 
         return ret;
     }
