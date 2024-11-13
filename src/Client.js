@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V33');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V34');
         this.emit = (some, more) => {
             this.debugLog('EMITING:::' + some + ' value:::' + more)
             super.emit(some, more)
@@ -411,7 +411,7 @@ class Client extends EventEmitter {
 
         try {
             await page.goto(WhatsWebURL, {
-                waitUntil: 'networkidle2',
+                waitUntil: 'load',
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             });
