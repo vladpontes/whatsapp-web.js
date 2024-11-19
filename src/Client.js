@@ -129,14 +129,9 @@ class Client extends EventEmitter {
         const isCometOrAbove = parseInt(version.split('.')?.[1]) >= 3000;
 
         if (isCometOrAbove) {
-            this.debugLog('before evaluate(ExposeAuthStore)')
             await this.pupPage.evaluate(ExposeAuthStore);
-            this.debugLog('after evaluate(ExposeAuthStore)')
-
         } else {
-            this.debugLog('before evaluate(ExposeLegacyAuthStore, moduleRaid.toString())')
             await this.pupPage.evaluate(ExposeLegacyAuthStore, moduleRaid.toString());
-            this.debugLog('after evaluate(ExposeLegacyAuthStore, moduleRaid.toString())')
         }
 
         this.debugLog('before const needAuthentication = await this.pupPage.evaluate')
@@ -415,10 +410,6 @@ class Client extends EventEmitter {
             };
         });
 
-        console.log("before const needAuthentication = await needAuthentication();");
-        const needAuthentication = await needAuthentication();
-        console.log("after const needAuthentication = await needAuthentication(); needAuthentication:::", needAuthentication);
-
 
         try {
             await page.goto(WhatsWebURL, {
@@ -427,23 +418,29 @@ class Client extends EventEmitter {
                 referer: 'https://whatsapp.com/'
             });
 
-            if (needAuthentication) {
-                // Usuário não está autenticado - aguardar o QR code usando `waitForFunction`
-                await page.waitForFunction(
-                    () => !!document.querySelector('canvas'), // Verifica a presença do QR code (elemento canvas)
-                    { timeout: 10000 } // Timeout de 10 segundos para o QR code aparecer
-                );
-                console.log("Usuário está desconectado - QR code disponível.");
-            } else {
-                // Usuário está autenticado - verificar a presença de `window.Store`
-                await page.waitForFunction(
-                    () => window.Store && window.Store.Conn && window.Store.User,
-                    { timeout: 10000 } // Timeout de 10 segundos para a disponibilidade do `window.Store`
-                );
+            // Promise para verificar o QR code (usuário desconectado)
+            const checkQrCode = page.waitForFunction(
+                () => !!document.querySelector('canvas'), // Verifica a presença do QR code (elemento canvas)
+                { timeout: 15000 } // Timeout de 15 segundos para o QR code aparecer
+            ).then(() => 'disconnected'); // Retorna 'disconnected' se o QR code for encontrado
 
+            // Promise para verificar o objeto `window.Store` (usuário conectado)
+            const checkAuthenticated = page.waitForFunction(
+                () => window.Store && window.Store.Conn && window.Store.User,
+                { timeout: 15000 } // Timeout de 15 segundos para a disponibilidade do `window.Store`
+            ).then(() => 'connected'); // Retorna 'connected' se o usuário estiver conectado
+
+            // Executa ambas as promises em paralelo e continua com a primeira que resolver
+            const status = await Promise.race([checkQrCode, checkAuthenticated]);
+
+            if (status === 'disconnected') {
+                console.log("Usuário está desconectado - QR code disponível.");
+                // Lógica para capturar ou exibir o QR code
+            } else if (status === 'connected') {
                 console.log("Usuário está conectado.");
                 // Lógica para manipular a sessão conectada, como acessar os chats
             }
+
 
         } catch (error) {
             console.error("Erro ao navegar para o WhatsWebURL:", error);
