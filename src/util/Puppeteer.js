@@ -15,9 +15,18 @@ async function exposeFunctionIfAbsent(page, name, fn) {
         return !!window[name];
     }, name);
     if (exist) {
+        debugLog(`Função ${name} já está registrada.`);
         return;
     }
+    debugLog(`Registrando função ${name}.`);
     await page.exposeFunction(name, fn);
 }
 
-module.exports = {exposeFunctionIfAbsent};
+function debugLog(msg) {
+    if (process.env.WW_DEBUG === 'true') {
+        const timestamp = new Date().toISOString();
+        console.log(`${timestamp} [WW_DEBUG] ${msg}`);
+    }
+}
+
+module.exports = { exposeFunctionIfAbsent };

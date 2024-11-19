@@ -95,6 +95,28 @@ class Client extends EventEmitter {
         }
 
     }
+
+    async checkNeedAuth() {
+        const needAuthentication = await this.pupPage.evaluate(async () => {
+            let state = window.AuthStore.AppState.state;
+
+            if (state === 'OPENING' || state === 'UNLAUNCHED' || state === 'PAIRING') {
+                // wait till state changes
+                await new Promise(r => {
+                    window.AuthStore.AppState.on('change:state', function waitTillInit(_AppState, state) {
+                        if (state !== 'OPENING' && state !== 'UNLAUNCHED' && state !== 'PAIRING') {
+                            window.AuthStore.AppState.off('change:state', waitTillInit);
+                            r();
+                        }
+                    });
+                });
+            }
+            state = window.AuthStore.AppState.state;
+            return state == 'UNPAIRED' || state == 'UNPAIRED_IDLE';
+        });
+
+        return needAuthentication;
+    }
     /**
      * Injection logic
      * Private function
@@ -118,23 +140,7 @@ class Client extends EventEmitter {
         }
 
         this.debugLog('before const needAuthentication = await this.pupPage.evaluate')
-        const needAuthentication = await this.pupPage.evaluate(async () => {
-            let state = window.AuthStore.AppState.state;
-
-            if (state === 'OPENING' || state === 'UNLAUNCHED' || state === 'PAIRING') {
-                // wait till state changes
-                await new Promise(r => {
-                    window.AuthStore.AppState.on('change:state', function waitTillInit(_AppState, state) {
-                        if (state !== 'OPENING' && state !== 'UNLAUNCHED' && state !== 'PAIRING') {
-                            window.AuthStore.AppState.off('change:state', waitTillInit);
-                            r();
-                        }
-                    });
-                });
-            }
-            state = window.AuthStore.AppState.state;
-            return state == 'UNPAIRED' || state == 'UNPAIRED_IDLE';
-        });
+        const needAuthentication = await needAuthentication();
         this.debugLog('after const needAuthentication = await this.pupPage.evaluate needAuthentication::' + needAuthentication)
 
 
@@ -409,13 +415,36 @@ class Client extends EventEmitter {
             };
         });
 
+        console.log("before const needAuthentication = await needAuthentication();");
+        const needAuthentication = await needAuthentication();
+        console.log("after const needAuthentication = await needAuthentication(); needAuthentication:::", needAuthentication);
+
+
         try {
             await page.goto(WhatsWebURL, {
                 waitUntil: 'load',
-                timeout: 0,
+                timeout: 30000,
                 referer: 'https://whatsapp.com/'
             });
-            // await page.waitForSelector('window.Store && window.Store.Conn && window.Store.User', { timeout: 5000 });
+
+            if (needAuthentication) {
+                // Usuário não está autenticado - aguardar o QR code usando `waitForFunction`
+                await page.waitForFunction(
+                    () => !!document.querySelector('canvas'), // Verifica a presença do QR code (elemento canvas)
+                    { timeout: 10000 } // Timeout de 10 segundos para o QR code aparecer
+                );
+                console.log("Usuário está desconectado - QR code disponível.");
+            } else {
+                // Usuário está autenticado - verificar a presença de `window.Store`
+                await page.waitForFunction(
+                    () => window.Store && window.Store.Conn && window.Store.User,
+                    { timeout: 10000 } // Timeout de 10 segundos para a disponibilidade do `window.Store`
+                );
+
+                console.log("Usuário está conectado.");
+                // Lógica para manipular a sessão conectada, como acessar os chats
+            }
+
         } catch (error) {
             console.error("Erro ao navegar para o WhatsWebURL:", error);
         }
