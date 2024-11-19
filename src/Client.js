@@ -95,8 +95,29 @@ class Client extends EventEmitter {
         }
 
     }
+    /**
+     * Injection logic
+     * Private function
+     */
+    async inject() {
 
-    async checkNeedAuth() {
+        await this.pupPage.waitForFunction('window.Debug?.VERSION != undefined', { timeout: this.options.authTimeoutMs });
+
+        const version = await this.getWWebVersion();
+        const isCometOrAbove = parseInt(version.split('.')?.[1]) >= 3000;
+
+        if (isCometOrAbove) {
+            this.debugLog('before evaluate(ExposeAuthStore)')
+            await this.pupPage.evaluate(ExposeAuthStore);
+            this.debugLog('after evaluate(ExposeAuthStore)')
+
+        } else {
+            this.debugLog('before evaluate(ExposeLegacyAuthStore, moduleRaid.toString())')
+            await this.pupPage.evaluate(ExposeLegacyAuthStore, moduleRaid.toString());
+            this.debugLog('after evaluate(ExposeLegacyAuthStore, moduleRaid.toString())')
+        }
+
+        this.debugLog('before const needAuthentication = await this.pupPage.evaluate')
         const needAuthentication = await this.pupPage.evaluate(async () => {
             let state = window.AuthStore.AppState.state;
 
@@ -114,28 +135,6 @@ class Client extends EventEmitter {
             state = window.AuthStore.AppState.state;
             return state == 'UNPAIRED' || state == 'UNPAIRED_IDLE';
         });
-
-        return needAuthentication;
-    }
-    /**
-     * Injection logic
-     * Private function
-     */
-    async inject() {
-
-        await this.pupPage.waitForFunction('window.Debug?.VERSION != undefined', { timeout: this.options.authTimeoutMs });
-
-        const version = await this.getWWebVersion();
-        const isCometOrAbove = parseInt(version.split('.')?.[1]) >= 3000;
-
-        if (isCometOrAbove) {
-            await this.pupPage.evaluate(ExposeAuthStore);
-        } else {
-            await this.pupPage.evaluate(ExposeLegacyAuthStore, moduleRaid.toString());
-        }
-
-        this.debugLog('before const needAuthentication = await this.pupPage.evaluate')
-        const needAuthentication = await needAuthentication();
         this.debugLog('after const needAuthentication = await this.pupPage.evaluate needAuthentication::' + needAuthentication)
 
 
@@ -410,7 +409,6 @@ class Client extends EventEmitter {
             };
         });
 
-
         try {
             await page.goto(WhatsWebURL, {
                 waitUntil: 'load',
@@ -445,6 +443,7 @@ class Client extends EventEmitter {
         } catch (error) {
             console.error("Erro ao navegar para o WhatsWebURL:", error);
         }
+
 
         this.debugLog('before first inject')
         await this.inject();
