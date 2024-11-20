@@ -88,11 +88,11 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V34');
-        this.emit = (some, more) => {
-            this.debugLog('EMITING:::' + some + ' value:::' + more)
-            super.emit(some, more)
-        }
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V35');
+        // this.emit = (some, more) => {
+        //     this.debugLog('EMITING:::' + some + ' value:::' + more)
+        //     super.emit(some, more)
+        // }
 
     }
     /**
@@ -185,12 +185,17 @@ class Client extends EventEmitter {
                 const platform = window.AuthStore.RegistrationUtils.DEVICE_PLATFORM;
                 const getQR = (ref) => ref + ',' + staticKeyB64 + ',' + identityKeyB64 + ',' + advSecretKey + ',' + platform;
 
+                this.debugLog('before ' + window.onQRChangedEvent(getQR(window.AuthStore.Conn.ref)))
+
                 window.onQRChangedEvent(getQR(window.AuthStore.Conn.ref)); // initial qr
-                console.log("QR code inicial enviado.");
+                this.debugLog("QR code inicial enviado.")
+
 
                 window.AuthStore.Conn.on('change:ref', (_, ref) => { 
-                    console.log("Evento change:ref acionado com novo QR code:", ref);
+                    this.debugLog("Evento change:ref acionado com novo QR code", ref)
                     window.onQRChangedEvent(getQR(ref)); 
+                    this.debugLog("after Evento change:ref acionado com novo QR code")
+
                 }); // future QR changes
             });
             this.debugLog('after await this.pupPage.evaluate(async () => {')
