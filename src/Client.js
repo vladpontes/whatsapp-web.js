@@ -186,7 +186,12 @@ class Client extends EventEmitter {
                 const getQR = (ref) => ref + ',' + staticKeyB64 + ',' + identityKeyB64 + ',' + advSecretKey + ',' + platform;
 
                 window.onQRChangedEvent(getQR(window.AuthStore.Conn.ref)); // initial qr
-                window.AuthStore.Conn.on('change:ref', (_, ref) => { window.onQRChangedEvent(getQR(ref)); }); // future QR changes
+                console.log("QR code inicial enviado.");
+
+                window.AuthStore.Conn.on('change:ref', (_, ref) => { 
+                    console.log("Evento change:ref acionado com novo QR code:", ref);
+                    window.onQRChangedEvent(getQR(ref)); 
+                }); // future QR changes
             });
             this.debugLog('after await this.pupPage.evaluate(async () => {')
 
@@ -464,17 +469,14 @@ class Client extends EventEmitter {
                 this.debugLog('on framenavigated:::frame.url().includes(post_logout=1) || this.lastLoggedOut')
             }
 
-
-            if (frame.url() === WhatsWebURL) {  // Verifica se a URL é a correta
-                try {
-                    this.debugLog('before second inject')
-                    await frame.waitForFunction('document.readyState === "complete"');
-                    await this.inject();
-                    this.debugLog('after second inject')
-                } catch (error) {
-                    console.error("Erro ao injetar após navegação:", error);
-                }
+            try {
+                this.debugLog('before second inject')
+                await this.inject();
+                this.debugLog('after second inject')
+            } catch (error) {
+                console.error("Erro ao injetar após navegação:", error);
             }
+
 
 
 
