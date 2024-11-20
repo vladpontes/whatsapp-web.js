@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V39');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V40');
         // this.emit = (some, more) => {
         //     this.debugLog('EMITING:::' + some + ' value:::' + more)
         //     super.emit(some, more)
@@ -179,6 +179,7 @@ class Client extends EventEmitter {
 
             this.debugLog('before await this.pupPage.evaluate(async () => {')
             await this.pupPage.evaluate(async () => {
+
                 console.log('inicio const registrationInfo = await window.AuthStore.RegistrationUtils.waSignalStore.getRegistrationInfo();')
                 const registrationInfo = await window.AuthStore.RegistrationUtils.waSignalStore.getRegistrationInfo();
                 console.log('const noiseKeyPair = await window.AuthStore.RegistrationUtils.waNoiseInfo.get()')
@@ -203,6 +204,7 @@ class Client extends EventEmitter {
                     console.log("QR code atualizado:", window.AuthStore.Conn.ref);
                     window.onQRChangedEvent(getQR(window.AuthStore.Conn.ref));
                 });
+
 
                 // Observar mudanças em 'ref' dentro de AuthStore.Conn
                 observer.observe(document, { subtree: true, attributes: true, childList: true });
@@ -433,6 +435,8 @@ class Client extends EventEmitter {
             };
         });
 
+
+
         try {
             await page.goto(WhatsWebURL, {
                 waitUntil: 'load',
@@ -462,6 +466,12 @@ class Client extends EventEmitter {
                 console.log("Usuário está conectado.");
                 // Lógica para manipular a sessão conectada, como acessar os chats
             }
+
+            //
+            console.log('registrando console log')
+            page.on('console', (msg) => {
+                console.log('Mensagem no console da página:', msg.text());
+            });
 
 
         } catch (error) {
