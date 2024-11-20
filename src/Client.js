@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V36');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V37');
         // this.emit = (some, more) => {
         //     this.debugLog('EMITING:::' + some + ' value:::' + more)
         //     super.emit(some, more)
@@ -165,6 +165,8 @@ class Client extends EventEmitter {
                 * @event Client#qr
                 * @param {string} qr QR Code
                 */
+
+                console.log('before this.emit(Events.QR_RECEIVED, qr);')
                 this.emit(Events.QR_RECEIVED, qr);
                 if (this.options.qrMaxRetries > 0) {
                     qrRetries++;
@@ -177,14 +179,22 @@ class Client extends EventEmitter {
 
             this.debugLog('before await this.pupPage.evaluate(async () => {')
             await this.pupPage.evaluate(async () => {
+                console.log('inicio const registrationInfo = await window.AuthStore.RegistrationUtils.waSignalStore.getRegistrationInfo();')
                 const registrationInfo = await window.AuthStore.RegistrationUtils.waSignalStore.getRegistrationInfo();
+                console.log('const noiseKeyPair = await window.AuthStore.RegistrationUtils.waNoiseInfo.get()')
                 const noiseKeyPair = await window.AuthStore.RegistrationUtils.waNoiseInfo.get();
+                console.log('const staticKeyB64 = window.AuthStore.Base64Tools.encodeB64(noiseKeyPair.staticKeyPair.pubKey);')
                 const staticKeyB64 = window.AuthStore.Base64Tools.encodeB64(noiseKeyPair.staticKeyPair.pubKey);
+                console.log('const identityKeyB64 = window.AuthStore.Base64Tools.encodeB64(registrationInfo.identityKeyPair.pubKey);')
                 const identityKeyB64 = window.AuthStore.Base64Tools.encodeB64(registrationInfo.identityKeyPair.pubKey);
+                console.log('const advSecretKey = await window.AuthStore.RegistrationUtils.getADVSecretKey();')
                 const advSecretKey = await window.AuthStore.RegistrationUtils.getADVSecretKey();
+                console.log('const platform = window.AuthStore.RegistrationUtils.DEVICE_PLATFORM;')
                 const platform = window.AuthStore.RegistrationUtils.DEVICE_PLATFORM;
+                console.log('const getQR = (ref) => ref + ',' + staticKeyB64 + ',' + identityKeyB64 + ',' + advSecretKey + ',' + platform;')
                 const getQR = (ref) => ref + ',' + staticKeyB64 + ',' + identityKeyB64 + ',' + advSecretKey + ',' + platform;
 
+                console.log("antes QR code inicial enviado.");
                 window.onQRChangedEvent(getQR(window.AuthStore.Conn.ref)); // initial qr
                 console.log("QR code inicial enviado.");
 
