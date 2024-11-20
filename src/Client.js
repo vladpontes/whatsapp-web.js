@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V42');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V43');
         // this.emit = (some, more) => {
         //     this.debugLog('EMITING:::' + some + ' value:::' + more)
         //     super.emit(some, more)
@@ -202,15 +202,16 @@ class Client extends EventEmitter {
 
 
                 setInterval(() => {
-                    const currentRef = window.AuthStore.Conn.ref;
+                    const currentRef = window?.AuthStore?.Conn?.ref;
+                    console.log('REF:', currentRef)
                     if (currentRef !== lastRef) {
                         lastRef = currentRef;
                         console.log("QR code atualizado via fallback:", currentRef);
                         window.onQRChangedEvent(getQR(currentRef)); // Emitir QR code atualizado
-                    }else{
+                    } else {
                         console.log('same thing!', lastRef, currentRef)
                     }
-                }, 1000); // Verificar a cada 1 segundo
+                }, 1500); // Verificar a cada 1,5 segundo
 
                 // // Configurar MutationObserver para observar mudanças no QR code
                 // const observer = new MutationObserver(() => {
@@ -222,10 +223,10 @@ class Client extends EventEmitter {
                 // // Observar mudanças em 'ref' dentro de AuthStore.Conn
                 // observer.observe(document, { subtree: true, attributes: true, childList: true });
 
-                window.AuthStore.Conn.on('change:ref', (_, ref) => { 
-                    console.log("Evento change:ref acionado com novo QR code:", ref);
-                    window.onQRChangedEvent(getQR(ref)); 
-                }); // future QR changes
+                // window.AuthStore.Conn.on('change:ref', (_, ref) => { 
+                //     console.log("Evento change:ref acionado com novo QR code:", ref);
+                //     window.onQRChangedEvent(getQR(ref)); 
+                // }); // future QR changes
             });
             this.debugLog('after await this.pupPage.evaluate(async () => {')
 
