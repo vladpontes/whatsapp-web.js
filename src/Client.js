@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V41');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V42');
         // this.emit = (some, more) => {
         //     this.debugLog('EMITING:::' + some + ' value:::' + more)
         //     super.emit(some, more)
@@ -207,6 +207,8 @@ class Client extends EventEmitter {
                         lastRef = currentRef;
                         console.log("QR code atualizado via fallback:", currentRef);
                         window.onQRChangedEvent(getQR(currentRef)); // Emitir QR code atualizado
+                    }else{
+                        console.log('same thing!', lastRef, currentRef)
                     }
                 }, 1000); // Verificar a cada 1 segundo
 
@@ -481,7 +483,7 @@ class Client extends EventEmitter {
             //
             console.log('registrando console log')
             page.on('console', (msg) => {
-                console.log('Mensagem no console da página:', msg.text());
+                console.log('CONSOLE:::', msg.text());
             });
 
 
