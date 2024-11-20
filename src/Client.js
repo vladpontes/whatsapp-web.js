@@ -88,7 +88,7 @@ class Client extends EventEmitter {
 
         Util.setFfmpegPath(this.options.ffmpegPath);
         this.debugEnabled = process.env.WW_DEBUG === 'true';
-        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V43');
+        console.log('ENABLE LOG WITH WW_DEBUG=TRUE V44');
         // this.emit = (some, more) => {
         //     this.debugLog('EMITING:::' + some + ' value:::' + more)
         //     super.emit(some, more)
@@ -180,53 +180,21 @@ class Client extends EventEmitter {
             this.debugLog('before await this.pupPage.evaluate(async () => {')
             await this.pupPage.evaluate(async () => {
 
-                console.log('inicio const registrationInfo = await window.AuthStore.RegistrationUtils.waSignalStore.getRegistrationInfo();')
                 const registrationInfo = await window.AuthStore.RegistrationUtils.waSignalStore.getRegistrationInfo();
-                console.log('const noiseKeyPair = await window.AuthStore.RegistrationUtils.waNoiseInfo.get()')
                 const noiseKeyPair = await window.AuthStore.RegistrationUtils.waNoiseInfo.get();
-                console.log('const staticKeyB64 = window.AuthStore.Base64Tools.encodeB64(noiseKeyPair.staticKeyPair.pubKey);')
                 const staticKeyB64 = window.AuthStore.Base64Tools.encodeB64(noiseKeyPair.staticKeyPair.pubKey);
-                console.log('const identityKeyB64 = window.AuthStore.Base64Tools.encodeB64(registrationInfo.identityKeyPair.pubKey);')
                 const identityKeyB64 = window.AuthStore.Base64Tools.encodeB64(registrationInfo.identityKeyPair.pubKey);
-                console.log('const advSecretKey = await window.AuthStore.RegistrationUtils.getADVSecretKey();')
                 const advSecretKey = await window.AuthStore.RegistrationUtils.getADVSecretKey();
-                console.log('const platform = window.AuthStore.RegistrationUtils.DEVICE_PLATFORM;')
                 const platform = window.AuthStore.RegistrationUtils.DEVICE_PLATFORM;
-                console.log('const getQR = (ref) => ref + ', ' + staticKeyB64 + ', ' + identityKeyB64 + ', ' + advSecretKey + ', ' + platform;')
                 const getQR = (ref) => ref + ',' + staticKeyB64 + ',' + identityKeyB64 + ',' + advSecretKey + ',' + platform;
 
-                console.log("antes QR code inicial enviado.");
                 let lastRef = window.AuthStore.Conn.ref;
                 window.onQRChangedEvent(getQR(lastRef)); // initial qr
-                console.log("QR code inicial enviado.");
 
-
-                setInterval(() => {
-                    const currentRef = window?.AuthStore?.Conn?.ref;
-                    console.log('REF:', currentRef)
-                    if (currentRef !== lastRef) {
-                        lastRef = currentRef;
-                        console.log("QR code atualizado via fallback:", currentRef);
-                        window.onQRChangedEvent(getQR(currentRef)); // Emitir QR code atualizado
-                    } else {
-                        console.log('same thing!', lastRef, currentRef)
-                    }
-                }, 1500); // Verificar a cada 1,5 segundo
-
-                // // Configurar MutationObserver para observar mudanças no QR code
-                // const observer = new MutationObserver(() => {
-                //     console.log("QR code atualizado:", window?.AuthStore?.Conn?.ref);
-                //     window.onQRChangedEvent(getQR(window?.AuthStore?.Conn?.ref));
-                // });
-
-
-                // // Observar mudanças em 'ref' dentro de AuthStore.Conn
-                // observer.observe(document, { subtree: true, attributes: true, childList: true });
-
-                // window.AuthStore.Conn.on('change:ref', (_, ref) => { 
-                //     console.log("Evento change:ref acionado com novo QR code:", ref);
-                //     window.onQRChangedEvent(getQR(ref)); 
-                // }); // future QR changes
+                window.AuthStore.Conn.on('change:ref', (_, ref) => {
+                    console.log("Evento change:ref acionado com novo QR code:", ref);
+                    window.onQRChangedEvent(getQR(ref));
+                }); // future QR changes
             });
             this.debugLog('after await this.pupPage.evaluate(async () => {')
 
@@ -481,11 +449,12 @@ class Client extends EventEmitter {
                 // Lógica para manipular a sessão conectada, como acessar os chats
             }
 
-            //
-            console.log('registrando console log')
-            page.on('console', (msg) => {
-                console.log('CONSOLE:::', msg.text());
-            });
+            if (process.env.WW_DEBUG == 'true') {
+                console.log('registrando console log para fins de debug')
+                page.on('console', (msg) => {
+                    console.log('CONSOLE:::', msg.text());
+                });
+            }
 
 
         } catch (error) {
@@ -520,11 +489,7 @@ class Client extends EventEmitter {
                 console.error("Erro ao injetar após navegação:", error);
             }
 
-
-
-
             this.debugLog('on framenavigated:::end')
-
 
         });
 
