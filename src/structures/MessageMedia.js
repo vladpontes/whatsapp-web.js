@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const mime = require('mime');
+const mime = await import('mime');
 const fetch = require('node-fetch');
 const { URL } = require('url');
 
