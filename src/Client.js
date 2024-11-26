@@ -927,8 +927,7 @@ class Client extends EventEmitter {
             await this.pupPage.setRequestInterception(true);
             this.pupPage.on('request', async (req) => {
                 if (req.url() === WhatsWebURL) {
-                    this.debugLog('urlCache:::: true' + req.url())
-
+                    // this.debugLog('urlCache:::: true' + req.url())
                     req.respond({
                         status: 200,
                         contentType: 'text/html',
