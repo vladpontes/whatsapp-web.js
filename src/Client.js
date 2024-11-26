@@ -919,8 +919,9 @@ class Client extends EventEmitter {
         const webCache = WebCacheFactory.createWebCache(webCacheType, webCacheOptions);
 
         const requestedVersion = this.options.webVersion;
+        this.debugLog('requestedVersion:::' + requestedVersion)
         const versionContent = await webCache.resolve(requestedVersion);
-        this.debugLog('versionContent::::' + versionContent)
+        this.debugLog('versionContent:::' + versionContent)
 
         if (versionContent) {
             await this.pupPage.setRequestInterception(true);
