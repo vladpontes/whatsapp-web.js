@@ -426,41 +426,41 @@ class Client extends EventEmitter {
                 referer: 'https://whatsapp.com/'
             });
 
-            // Promise para verificar o QR code (usuário desconectado)
-            const checkQrCode = page.waitForFunction(
-                () => !!document.querySelector('canvas'), // Verifica a presença do QR code (elemento canvas)
-                { timeout: 29000 } // Timeout de 15 segundos para o QR code aparecer
-            ).then(() => 'disconnected'); // Retorna 'disconnected' se o QR code for encontrado
+            // // Promise para verificar o QR code (usuário desconectado)
+            // const checkQrCode = page.waitForFunction(
+            //     () => !!document.querySelector('canvas'), // Verifica a presença do QR code (elemento canvas)
+            //     { timeout: 29000 } // Timeout de 15 segundos para o QR code aparecer
+            // ).then(() => 'disconnected'); // Retorna 'disconnected' se o QR code for encontrado
 
-            // Promise para verificar o objeto `window.Store` (usuário conectado)
-            const checkAuthenticated = page.waitForFunction(
-                () => window.Store && window.Store.Conn && window.Store.User,
-                { timeout: 29000 } // Timeout de 15 segundos para a disponibilidade do `window.Store`
-            ).then(() => 'connected'); // Retorna 'connected' se o usuário estiver conectado
+            // // Promise para verificar o objeto `window.Store` (usuário conectado)
+            // const checkAuthenticated = page.waitForFunction(
+            //     () => window.Store && window.Store.Conn && window.Store.User,
+            //     { timeout: 29000 } // Timeout de 15 segundos para a disponibilidade do `window.Store`
+            // ).then(() => 'connected'); // Retorna 'connected' se o usuário estiver conectado
 
-            // Executa ambas as promises em paralelo e continua com a primeira que resolver
-            const status = await Promise.race([checkQrCode, checkAuthenticated]);
+            // // Executa ambas as promises em paralelo e continua com a primeira que resolver
+            // const status = await Promise.race([checkQrCode, checkAuthenticated]);
 
-            if (status === 'disconnected') {
-                console.log("Usuário está desconectado - QR code disponível.");
-                // Lógica para capturar ou exibir o QR code
-            } else if (status === 'connected') {
-                console.log("Usuário está conectado.");
-                // Lógica para manipular a sessão conectada, como acessar os chats
-            }
+            // if (status === 'disconnected') {
+            //     console.log("Usuário está desconectado - QR code disponível.");
+            //     // Lógica para capturar ou exibir o QR code
+            // } else if (status === 'connected') {
+            //     console.log("Usuário está conectado.");
+            //     // Lógica para manipular a sessão conectada, como acessar os chats
+            // }
 
-            if (process.env.WW_DEBUG == 'true') {
-                console.log('registrando console log para fins de debug')
-                page.on('console', (msg) => {
-                    console.log('CONSOLE:::', msg.text());
-                });
-            }
 
 
         } catch (error) {
             console.error("Erro ao navegar para o WhatsWebURL:", error);
         }
 
+        if (process.env.WW_DEBUG == 'true') {
+            console.log('registrando console log para fins de debug')
+            page.on('console', (msg) => {
+                console.log('CONSOLE:::', msg.text());
+            });
+        }
 
         this.debugLog('before first inject')
         await this.inject();
