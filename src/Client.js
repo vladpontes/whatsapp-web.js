@@ -990,7 +990,7 @@ class Client extends EventEmitter {
         const ret = await this.pupPage.evaluate(() => {
             return window.Debug.VERSION;
         });
-        this.debugLog('after getWWebVersion const ret =  await this.pupPage.evaluate(() => {')
+        this.debugLog('after getWWebVersion const ret =  await this.pupPage.evaluate(() => {ret:::' + ret)
 
         return ret;
     }
