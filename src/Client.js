@@ -422,20 +422,20 @@ class Client extends EventEmitter {
         try {
             await page.goto(WhatsWebURL, {
                 waitUntil: 'load',
-                timeout: 30000,
+                timeout: 60000,
                 referer: 'https://whatsapp.com/'
             });
 
             // Promise para verificar o QR code (usuário desconectado)
             const checkQrCode = page.waitForFunction(
                 () => !!document.querySelector('canvas'), // Verifica a presença do QR code (elemento canvas)
-                { timeout: 15000 } // Timeout de 15 segundos para o QR code aparecer
+                { timeout: 29000 } // Timeout de 15 segundos para o QR code aparecer
             ).then(() => 'disconnected'); // Retorna 'disconnected' se o QR code for encontrado
 
             // Promise para verificar o objeto `window.Store` (usuário conectado)
             const checkAuthenticated = page.waitForFunction(
                 () => window.Store && window.Store.Conn && window.Store.User,
-                { timeout: 15000 } // Timeout de 15 segundos para a disponibilidade do `window.Store`
+                { timeout: 29000 } // Timeout de 15 segundos para a disponibilidade do `window.Store`
             ).then(() => 'connected'); // Retorna 'connected' se o usuário estiver conectado
 
             // Executa ambas as promises em paralelo e continua com a primeira que resolver
