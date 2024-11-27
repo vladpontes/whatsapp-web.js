@@ -320,7 +320,7 @@ class Client extends EventEmitter {
             window.AuthStore.AppState.on('change:state', (_AppState, state) => { window.onAuthAppStateChangedEvent(state); });
 
             // When using browserless, already CONNECTED
-            if(window.AuthStore.AppState.state === WAState.CONNECTED){
+            if (window.AuthStore.AppState.state === 'CONNECTED') {
                 window.onAppStateHasSyncedEvent();
             }
             window.AuthStore.AppState.on('change:hasSynced', () => {
