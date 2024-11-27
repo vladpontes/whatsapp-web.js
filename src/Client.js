@@ -319,7 +319,7 @@ class Client extends EventEmitter {
         await this.pupPage.evaluate(() => {
             window.AuthStore.AppState.on('change:state', (_AppState, state) => { window.onAuthAppStateChangedEvent(state); });
            
-            console.log(window?.AuthStore?.AppState)
+            console.log('STR::', JSON.stringify(window?.AuthStore?.AppState))
             window.AuthStore.AppState.on('change:hasSynced', () => { 
                 console.log('change:hasSynced event received');
                 window.onAppStateHasSyncedEvent(); 
