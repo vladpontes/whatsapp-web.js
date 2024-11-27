@@ -319,11 +319,13 @@ class Client extends EventEmitter {
         await this.pupPage.evaluate(() => {
             window.AuthStore.AppState.on('change:state', (_AppState, state) => { window.onAuthAppStateChangedEvent(state); });
 
-            console.log('STR::', window.AuthStore.AppState.state)
+            // When using browserless, already CONNECTED
+            if(window.AuthStore.AppState.state === WAState.CONNECTED){
+                window.onAppStateHasSyncedEvent();
+            }
             window.AuthStore.AppState.on('change:hasSynced', () => {
                 console.log('change:hasSynced event received');
                 window.onAppStateHasSyncedEvent();
-
             });
             window.AuthStore.Cmd.on('offline_progress_update', () => {
                 window.onOfflineProgressUpdateEvent(window.AuthStore.OfflineMessageHandler.getOfflineDeliveryProgress());
