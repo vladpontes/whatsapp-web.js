@@ -299,6 +299,8 @@ class Client extends EventEmitter {
             this.emit(Events.READY);
             this.authStrategy.afterAuthReady();
         });
+
+
         let lastPercent = null;
         await exposeFunctionIfAbsent(this.pupPage, 'onOfflineProgressUpdateEvent', async (percent) => {
             if (lastPercent !== percent) {
@@ -310,10 +312,19 @@ class Client extends EventEmitter {
             this.lastLoggedOut = true;
             await this.pupPage.waitForNavigation({ waitUntil: 'load', timeout: 5000 }).catch((_) => _);
         });
+
+
+
         this.debugLog('before await this.pupPage.evaluate(() => {')
         await this.pupPage.evaluate(() => {
             window.AuthStore.AppState.on('change:state', (_AppState, state) => { window.onAuthAppStateChangedEvent(state); });
-            window.AuthStore.AppState.on('change:hasSynced', () => { window.onAppStateHasSyncedEvent(); });
+           
+            console.log(window?.AuthStore?.AppState)
+            window.AuthStore.AppState.on('change:hasSynced', () => { 
+                console.log('change:hasSynced event received');
+                window.onAppStateHasSyncedEvent(); 
+
+            });
             window.AuthStore.Cmd.on('offline_progress_update', () => {
                 window.onOfflineProgressUpdateEvent(window.AuthStore.OfflineMessageHandler.getOfflineDeliveryProgress());
             });
